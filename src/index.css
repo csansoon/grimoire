@@ -19,12 +19,18 @@
   html, body, #root {
     height: var(--app-height);
     min-height: var(--app-height);
+    max-height: var(--app-height);
+    overflow: hidden;
   }
 
   body {
     @apply font-body bg-grimoire-dark text-white;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
+    /* Prevent pull-to-refresh and overscroll */
+    overscroll-behavior: none;
   }
 }
 
@@ -89,10 +95,25 @@
   /* Dynamic viewport height utilities */
   .min-h-app {
     min-height: var(--app-height);
+    max-height: var(--app-height);
+    overflow-y: auto;
   }
 
   .h-app {
     height: var(--app-height);
+    max-height: var(--app-height);
+  }
+
+  .max-h-app {
+    max-height: var(--app-height);
+  }
+
+  /* Safe area padding for notched devices */
+  .safe-area-inset {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 }
 
