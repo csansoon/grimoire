@@ -136,6 +136,11 @@ export type Translations = {
         noOutsidersMessage: string;
         confirmNoOutsiders: string;
 
+        // Investigator specific
+        mustIncludeMinion: string;
+        investigatorInfo: string;
+        oneOfTheseIsTheMinion: string;
+
         // Handback screen
         handbackToNarrator: string;
         handbackDescription: string;
@@ -188,6 +193,13 @@ export type Translations = {
             history: {
                 discoveredOutsider: string;
                 noOutsiders: string;
+            };
+        };
+        investigator: {
+            name: string;
+            description: string;
+            history: {
+                discoveredMinion: string;
             };
         };
     };

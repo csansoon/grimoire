@@ -134,6 +134,13 @@ const en: Translations = {
             "There are no Outsiders in this game. This is valuable information!",
         confirmNoOutsiders: "Show to Player",
 
+        // Investigator specific
+        mustIncludeMinion:
+            "At least one selected player must be a Minion",
+        investigatorInfo: "Your Information",
+        oneOfTheseIsTheMinion:
+            "One of these players is a Minion. Remember who they are!",
+
         // Handback screen
         handbackToNarrator: "Hand back to Narrator",
         handbackDescription:
@@ -194,6 +201,15 @@ const en: Translations = {
                 discoveredOutsider:
                     "{player} discovered that either {player1} or {player2} is the {role}",
                 noOutsiders: "{player} learned there are no Outsiders in this game",
+            },
+        },
+        investigator: {
+            name: "Investigator",
+            description:
+                "You start knowing that 1 of 2 players is a particular Minion.",
+            history: {
+                discoveredMinion:
+                    "{player} discovered that either {player1} or {player2} is the {role}",
             },
         },
     },

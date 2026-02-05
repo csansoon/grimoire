@@ -36,7 +36,7 @@ export type RoleRevealProps = {
 // ROLE DEFINITION
 // ============================================================================
 
-export type RoleId = "villager" | "imp" | "washerwoman" | "librarian";
+export type RoleId = "villager" | "imp" | "washerwoman" | "librarian" | "investigator";
 
 export type RoleDefinition = {
     id: RoleId;

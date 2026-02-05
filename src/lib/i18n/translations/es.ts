@@ -125,6 +125,11 @@ const es: Translations = {
         noOutsidersMessage: "No hay Forasteros en esta partida. ¡Esta es información valiosa!",
         confirmNoOutsiders: "Mostrar al Jugador",
 
+        // Investigator specific
+        mustIncludeMinion: "Al menos uno de los jugadores seleccionados debe ser un Secuaz",
+        investigatorInfo: "Tu Información",
+        oneOfTheseIsTheMinion: "Uno de estos jugadores es un Secuaz. ¡Recuerda quiénes son!",
+
         // Handback screen
         handbackToNarrator: "Devolver al Narrador",
         handbackDescription: "Por favor, devuelve el dispositivo al Narrador antes de continuar.",
@@ -175,6 +180,13 @@ const es: Translations = {
             history: {
                 discoveredOutsider: "{player} descubrió que {player1} o {player2} es el/la {role}",
                 noOutsiders: "{player} descubrió que no hay Forasteros en esta partida",
+            },
+        },
+        investigator: {
+            name: "Investigador",
+            description: "Empiezas sabiendo que 1 de 2 jugadores es un Secuaz en particular.",
+            history: {
+                discoveredMinion: "{player} descubrió que {player1} o {player2} es el/la {role}",
             },
         },
     },
