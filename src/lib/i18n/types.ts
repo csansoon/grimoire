@@ -349,6 +349,10 @@ export type Translations = {
     ui: {
         effects: string;
         seeRoleCard: string;
+        editEffects: string;
+        currentEffects: string;
+        addEffect: string;
+        noEffects: string;
     };
 
     // History messages
@@ -367,6 +371,8 @@ export type Translations = {
         executed: string;
         goodWins: string;
         evilWins: string;
+        effectAdded: string;
+        effectRemoved: string;
     };
 
     // Scripts

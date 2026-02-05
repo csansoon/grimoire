@@ -623,3 +623,52 @@ export function endGame(game: Game, winner: "townsfolk" | "demon"): Game {
         { phase: "ended", winner }
     );
 }
+
+// ============================================================================
+// MANUAL EFFECT MANAGEMENT
+// ============================================================================
+
+/**
+ * Manually add an effect to a player (narrator action)
+ */
+export function addEffectToPlayer(
+    game: Game,
+    playerId: string,
+    effectType: string
+): Game {
+    return addHistoryEntry(
+        game,
+        {
+            type: "effect_added",
+            message: [
+                { type: "i18n", key: "history.effectAdded", params: { player: playerId, effect: effectType } },
+            ],
+            data: { playerId, effectType, source: "narrator" },
+        },
+        undefined,
+        { [playerId]: [{ type: effectType, expiresAt: "never" }] }
+    );
+}
+
+/**
+ * Manually remove an effect from a player (narrator action)
+ */
+export function removeEffectFromPlayer(
+    game: Game,
+    playerId: string,
+    effectType: string
+): Game {
+    return addHistoryEntry(
+        game,
+        {
+            type: "effect_removed",
+            message: [
+                { type: "i18n", key: "history.effectRemoved", params: { player: playerId, effect: effectType } },
+            ],
+            data: { playerId, effectType, source: "narrator" },
+        },
+        undefined,
+        undefined,
+        { [playerId]: [effectType] }
+    );
+}

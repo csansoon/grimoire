@@ -13,9 +13,10 @@ type Props = {
     onEndDay: () => void;
     onMainMenu: () => void;
     onShowRoleCard?: (player: PlayerState) => void;
+    onEditEffects?: (player: PlayerState) => void;
 };
 
-export function DayPhase({ state, canNominate, hasSlayerAction, onNominate, onSlayerAction, onEndDay, onMainMenu, onShowRoleCard }: Props) {
+export function DayPhase({ state, canNominate, hasSlayerAction, onNominate, onSlayerAction, onEndDay, onMainMenu, onShowRoleCard, onEditEffects }: Props) {
     const { t } = useI18n();
 
     return (
@@ -58,7 +59,7 @@ export function DayPhase({ state, canNominate, hasSlayerAction, onNominate, onSl
                         </span>
                     </div>
                     <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-                        <Grimoire state={state} compact onShowRoleCard={onShowRoleCard} />
+                        <Grimoire state={state} compact onShowRoleCard={onShowRoleCard} onEditEffects={onEditEffects} />
                     </div>
                 </div>
 

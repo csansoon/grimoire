@@ -15,9 +15,10 @@ type Props = {
     open: boolean;
     onClose: () => void;
     onShowRoleCard?: (player: PlayerState) => void;
+    onEditEffects?: (player: PlayerState) => void;
 };
 
-export function GrimoireModal({ state, open, onClose, onShowRoleCard }: Props) {
+export function GrimoireModal({ state, open, onClose, onShowRoleCard, onEditEffects }: Props) {
     const { t } = useI18n();
     
     return (
@@ -30,7 +31,7 @@ export function GrimoireModal({ state, open, onClose, onShowRoleCard }: Props) {
                     </div>
                 </DialogHeader>
                 <DialogBody>
-                    <Grimoire state={state} onShowRoleCard={onShowRoleCard} />
+                    <Grimoire state={state} onShowRoleCard={onShowRoleCard} onEditEffects={onEditEffects} />
                 </DialogBody>
             </DialogContent>
         </Dialog>

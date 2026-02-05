@@ -374,6 +374,10 @@ const en: Translations = {
     ui: {
         effects: "Effects",
         seeRoleCard: "See Role Card",
+        editEffects: "Edit Effects",
+        currentEffects: "Current Effects",
+        addEffect: "Add Effect",
+        noEffects: "No effects",
     },
 
     history: {
@@ -391,6 +395,8 @@ const en: Translations = {
         executed: "{player} has been executed",
         goodWins: "Good wins! The Demon has been defeated.",
         evilWins: "Evil wins! The town has fallen.",
+        effectAdded: "Narrator added {effect} to {player}",
+        effectRemoved: "Narrator removed {effect} from {player}",
     },
 
     scripts: {

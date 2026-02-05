@@ -26,9 +26,11 @@ function getTranslation(t: Translations, key: string): string | undefined {
 }
 
 // Param keys that represent player IDs
-const PLAYER_PARAM_KEYS = ["player", "player1", "player2", "target", "nominator", "nominee"];
+const PLAYER_PARAM_KEYS = ["player", "player1", "player2", "target", "nominator", "nominee", "slayer"];
 // Param keys that represent role IDs
 const ROLE_PARAM_KEYS = ["role"];
+// Param keys that represent effect IDs
+const EFFECT_PARAM_KEYS = ["effect"];
 
 export function RichMessage({ message, state }: Props) {
     const { t } = useI18n();
@@ -100,6 +102,13 @@ export function RichMessage({ message, state }: Props) {
                 } else if (ROLE_PARAM_KEYS.includes(paramKey)) {
                     // Render as role badge
                     result.push(renderRoleBadge(String(paramValue), `${baseKey}-role-${paramKey}`));
+                } else if (EFFECT_PARAM_KEYS.includes(paramKey)) {
+                    // Render as effect badge
+                    result.push(
+                        <Badge key={`${baseKey}-effect-${paramKey}`} variant="effect">
+                            {getEffectName(String(paramValue))}
+                        </Badge>
+                    );
                 } else {
                     // Render as plain text
                     result.push(<span key={`${baseKey}-param-${paramKey}`}>{paramValue}</span>);

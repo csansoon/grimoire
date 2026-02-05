@@ -344,6 +344,10 @@ const es: Translations = {
     ui: {
         effects: "Efectos",
         seeRoleCard: "Ver Carta de Rol",
+        editEffects: "Editar Efectos",
+        currentEffects: "Efectos Actuales",
+        addEffect: "Añadir Efecto",
+        noEffects: "Sin efectos",
     },
 
     history: {
@@ -361,6 +365,8 @@ const es: Translations = {
         executed: "{player} ha sido ejecutado/a",
         goodWins: "¡El Bien gana! El Demonio ha sido derrotado.",
         evilWins: "¡El Mal gana! El pueblo ha caído.",
+        effectAdded: "El Narrador añadió {effect} a {player}",
+        effectRemoved: "El Narrador eliminó {effect} de {player}",
     },
 
     scripts: {

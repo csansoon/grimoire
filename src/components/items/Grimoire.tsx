@@ -12,6 +12,7 @@ type Props = {
     state: GameState;
     compact?: boolean;
     onShowRoleCard?: (player: PlayerState) => void;
+    onEditEffects?: (player: PlayerState) => void;
 };
 
 function PlayerRow({ player, onClick }: { player: PlayerState; onClick: () => void }) {
@@ -91,7 +92,7 @@ function PlayerRow({ player, onClick }: { player: PlayerState; onClick: () => vo
     );
 }
 
-export function Grimoire({ state, compact = false, onShowRoleCard }: Props) {
+export function Grimoire({ state, compact = false, onShowRoleCard, onEditEffects }: Props) {
     
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerState | null>(null);
 
@@ -111,6 +112,7 @@ export function Grimoire({ state, compact = false, onShowRoleCard }: Props) {
                 open={selectedPlayer !== null}
                 onClose={() => setSelectedPlayer(null)}
                 onShowRoleCard={onShowRoleCard}
+                onEditEffects={onEditEffects}
             />
         </>
     );

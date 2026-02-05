@@ -19,4 +19,8 @@ export function getEffect(effectId: string): EffectDefinition | undefined {
     return EFFECTS[effectId as EffectId];
 }
 
+export function getAllEffects(): EffectDefinition[] {
+    return Object.values(EFFECTS);
+}
+
 export * from "./types";

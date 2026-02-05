@@ -20,9 +20,10 @@ type Props = {
     open: boolean;
     onClose: () => void;
     onShowRoleCard?: (player: PlayerState) => void;
+    onEditEffects?: (player: PlayerState) => void;
 };
 
-export function PlayerDetailModal({ player, open, onClose, onShowRoleCard }: Props) {
+export function PlayerDetailModal({ player, open, onClose, onShowRoleCard, onEditEffects }: Props) {
     const { t } = useI18n();
 
     if (!player) return null;
@@ -180,21 +181,40 @@ export function PlayerDetailModal({ player, open, onClose, onShowRoleCard }: Pro
                         </div>
                     )}
 
-                    {/* See Role Card Button */}
-                    {role && onShowRoleCard && (
-                        <Button
-                            onClick={() => {
-                                onClose();
-                                onShowRoleCard(player);
-                            }}
-                            fullWidth
-                            variant="outline"
-                            className="border-mystic-gold/30 text-mystic-gold hover:bg-mystic-gold/10"
-                        >
-                            <Icon name="eye" size="md" className="mr-2" />
-                            {t.ui.seeRoleCard}
-                        </Button>
-                    )}
+                    {/* Action Buttons */}
+                    <div className="space-y-2">
+                        {/* See Role Card Button */}
+                        {role && onShowRoleCard && (
+                            <Button
+                                onClick={() => {
+                                    onClose();
+                                    onShowRoleCard(player);
+                                }}
+                                fullWidth
+                                variant="outline"
+                                className="border-mystic-gold/30 text-mystic-gold hover:bg-mystic-gold/10"
+                            >
+                                <Icon name="eye" size="md" className="mr-2" />
+                                {t.ui.seeRoleCard}
+                            </Button>
+                        )}
+
+                        {/* Edit Effects Button */}
+                        {onEditEffects && (
+                            <Button
+                                onClick={() => {
+                                    onClose();
+                                    onEditEffects(player);
+                                }}
+                                fullWidth
+                                variant="outline"
+                                className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-900/20"
+                            >
+                                <Icon name="sparkles" size="md" className="mr-2" />
+                                {t.ui.editEffects}
+                            </Button>
+                        )}
+                    </div>
                 </DialogBody>
             </DialogContent>
         </Dialog>

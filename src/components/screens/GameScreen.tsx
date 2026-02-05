@@ -16,6 +16,8 @@ import {
     hasExecutionToday,
     hasSlayerWithBullet,
     slayerShoot,
+    addEffectToPlayer,
+    removeEffectFromPlayer,
 } from "../../lib/game";
 import { saveGame } from "../../lib/storage";
 import { useI18n, interpolate } from "../../lib/i18n";
@@ -28,6 +30,7 @@ import { HistoryView } from "./HistoryView";
 import { HandbackScreen } from "./HandbackScreen";
 import { SlayerActionScreen } from "./SlayerActionScreen";
 import { GrimoireModal } from "../items/GrimoireModal";
+import { EditEffectsModal } from "../items/EditEffectsModal";
 import { MysticDivider } from "../items";
 import { Button, Icon, LanguageToggle } from "../atoms";
 import { NightActionResult } from "../../lib/roles/types";
@@ -56,6 +59,7 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
     const [screen, setScreen] = useState<Screen>(() => getInitialScreen(initialGame));
     const [showHistory, setShowHistory] = useState(false);
     const [showGrimoire, setShowGrimoire] = useState(false);
+    const [editEffectsPlayer, setEditEffectsPlayer] = useState<PlayerState | null>(null);
     
     // Store pending night action result to apply after handback
     const pendingNightActionResult = useRef<NightActionResult | null>(null);
@@ -267,6 +271,32 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         setScreen({ type: "day" });
     };
 
+    const handleOpenEditEffects = (player: PlayerState) => {
+        setEditEffectsPlayer(player);
+    };
+
+    const handleAddEffect = (playerId: string, effectType: string) => {
+        const newGame = addEffectToPlayer(game, playerId, effectType);
+        updateGame(newGame);
+        // Update the player reference with latest state
+        const updatedState = getCurrentState(newGame);
+        const updatedPlayer = updatedState.players.find(p => p.id === playerId);
+        if (updatedPlayer) {
+            setEditEffectsPlayer(updatedPlayer);
+        }
+    };
+
+    const handleRemoveEffect = (playerId: string, effectType: string) => {
+        const newGame = removeEffectFromPlayer(game, playerId, effectType);
+        updateGame(newGame);
+        // Update the player reference with latest state
+        const updatedState = getCurrentState(newGame);
+        const updatedPlayer = updatedState.players.find(p => p.id === playerId);
+        if (updatedPlayer) {
+            setEditEffectsPlayer(updatedPlayer);
+        }
+    };
+
     const handleVoteComplete = (votesFor: string[], votesAgainst: string[]) => {
         if (screen.type !== "voting") return;
 
@@ -435,6 +465,7 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                         onEndDay={handleEndDay}
                         onMainMenu={onMainMenu}
                         onShowRoleCard={handleShowRoleCard}
+                        onEditEffects={handleOpenEditEffects}
                     />
                 );
 
@@ -532,6 +563,16 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                 open={showGrimoire}
                 onClose={() => setShowGrimoire(false)}
                 onShowRoleCard={handleShowRoleCard}
+                onEditEffects={handleOpenEditEffects}
+            />
+
+            {/* Edit Effects Modal */}
+            <EditEffectsModal
+                player={editEffectsPlayer}
+                open={editEffectsPlayer !== null}
+                onClose={() => setEditEffectsPlayer(null)}
+                onAddEffect={handleAddEffect}
+                onRemoveEffect={handleRemoveEffect}
             />
         </div>
     );
