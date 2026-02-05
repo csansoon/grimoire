@@ -14,11 +14,13 @@ import {
     checkWinCondition,
 } from "../../lib/game";
 import { saveGame } from "../../lib/storage";
+import { useI18n, interpolate } from "../../lib/i18n";
 import { NarratorPrompt } from "./NarratorPrompt";
 import { DayPhase } from "./DayPhase";
 import { VotingPhase } from "./VotingPhase";
 import { GameOver } from "./GameOver";
 import { HistoryView } from "./HistoryView";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Icon } from "../atoms";
 
 type Props = {
     initialGame: Game;
@@ -36,6 +38,7 @@ type Screen =
     | { type: "history" };
 
 export function GameScreen({ initialGame, onMainMenu }: Props) {
+    const { t } = useI18n();
     const [game, setGame] = useState<Game>(initialGame);
     const [screen, setScreen] = useState<Screen>(() => getInitialScreen(initialGame));
     const [showHistory, setShowHistory] = useState(false);
@@ -71,6 +74,9 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
             case "day":
                 setScreen({ type: "day" });
                 break;
+            case "voting":
+                setScreen({ type: "voting", nomineeId: step.nomineeId });
+                break;
             case "game_over":
                 const finalGame = endGame(currentGame, step.winner);
                 updateGame(finalGame);
@@ -79,7 +85,6 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         }
     }, [updateGame]);
 
-    // Handle narrator prompt -> show actual content
     const handleNarratorProceed = () => {
         if (screen.type !== "narrator_prompt") return;
 
@@ -97,21 +102,18 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         }
     };
 
-    // Handle role reveal complete
     const handleRoleRevealComplete = () => {
         if (screen.type !== "role_reveal") return;
 
         const newGame = markRoleRevealed(game, screen.playerId);
         updateGame(newGame);
 
-        // Check if all players have seen their roles
         const revealedCount = newGame.history.filter(
             (e) => e.type === "role_revealed"
         ).length;
         const totalPlayers = state.players.length;
 
         if (revealedCount >= totalPlayers) {
-            // Start first night
             const nightGame = startNight(newGame);
             updateGame(nightGame);
             advanceToNextStep(nightGame);
@@ -120,12 +122,10 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         }
     };
 
-    // Handle night action complete
     const handleNightActionComplete = (result: Parameters<typeof applyNightAction>[1]) => {
         const newGame = applyNightAction(game, result);
         updateGame(newGame);
 
-        // Check win condition
         const winner = checkWinCondition(getCurrentState(newGame));
         if (winner) {
             const finalGame = endGame(newGame, winner);
@@ -136,7 +136,6 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         }
     };
 
-    // Handle night action skipped (no action needed)
     const handleNightActionSkip = () => {
         if (screen.type !== "night_action") return;
 
@@ -145,12 +144,10 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         advanceToNextStep(newGame);
     };
 
-    // Handle night waiting -> start day
     const handleStartDay = () => {
         const newGame = startDay(game);
         updateGame(newGame);
 
-        // Check win condition after night deaths
         const winner = checkWinCondition(getCurrentState(newGame));
         if (winner) {
             const finalGame = endGame(newGame, winner);
@@ -161,21 +158,18 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         }
     };
 
-    // Handle nomination
     const handleNominate = (nominatorId: string, nomineeId: string) => {
         const newGame = nominate(game, nominatorId, nomineeId);
         updateGame(newGame);
         setScreen({ type: "voting", nomineeId });
     };
 
-    // Handle vote complete
     const handleVoteComplete = (votesFor: string[], votesAgainst: string[]) => {
         if (screen.type !== "voting") return;
 
         const newGame = resolveVote(game, screen.nomineeId, votesFor, votesAgainst);
         updateGame(newGame);
 
-        // Check win condition after possible execution
         const winner = checkWinCondition(getCurrentState(newGame));
         if (winner) {
             const finalGame = endGame(newGame, winner);
@@ -186,24 +180,20 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         }
     };
 
-    // Handle end day -> start night
     const handleEndDay = () => {
         const newGame = startNight(game);
         updateGame(newGame);
         advanceToNextStep(newGame);
     };
 
-    // Cancel vote
     const handleCancelVote = () => {
         setScreen({ type: "day" });
     };
 
-    // History toggle
     if (showHistory) {
         return <HistoryView game={game} onClose={() => setShowHistory(false)} />;
     }
 
-    // Render current screen
     const renderScreen = () => {
         switch (screen.type) {
             case "narrator_prompt": {
@@ -239,7 +229,6 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                 if (!role) return null;
 
                 if (!role.NightAction) {
-                    // Role has no night action
                     handleNightActionSkip();
                     return null;
                 }
@@ -256,21 +245,30 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
             case "night_waiting":
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-indigo-900 to-purple-900 flex items-center justify-center p-6">
-                        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 max-w-md w-full text-center">
-                            <div className="text-6xl mb-6">🌙</div>
-                            <h2 className="text-2xl font-bold text-white mb-4">
-                                Night {state.round} Complete
-                            </h2>
-                            <p className="text-purple-200 mb-8">
-                                All night actions have been resolved. Ready to start the day?
-                            </p>
-                            <button
-                                onClick={handleStartDay}
-                                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold py-4 px-6 rounded-xl transition duration-300"
-                            >
-                                Start Day ☀️
-                            </button>
-                        </div>
+                        <Card className="max-w-md w-full">
+                            <CardHeader className="text-center">
+                                <div className="flex justify-center mb-4">
+                                    <Icon name="moon" size="4xl" className="text-indigo-400" />
+                                </div>
+                                <CardTitle>
+                                    {interpolate(t.game.nightComplete, { round: state.round })}
+                                </CardTitle>
+                                <CardDescription>
+                                    {t.game.nightActionsResolved}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Button
+                                    onClick={handleStartDay}
+                                    fullWidth
+                                    size="lg"
+                                    className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+                                >
+                                    <Icon name="sun" size="md" className="mr-2" />
+                                    {t.game.startDay}
+                                </Button>
+                            </CardContent>
+                        </Card>
                     </div>
                 );
 
@@ -301,7 +299,6 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         }
     };
 
-    // Show history button except when player has the phone (role_reveal, night_action)
     const showHistoryButton =
         screen.type !== "role_reveal" &&
         screen.type !== "night_action" &&
@@ -311,15 +308,16 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         <div className="relative">
             {renderScreen()}
 
-            {/* History button (floating) - hidden when player has the phone */}
             {showHistoryButton && (
-                <button
+                <Button
                     onClick={() => setShowHistory(true)}
-                    className="fixed bottom-4 right-4 bg-white/20 hover:bg-white/30 text-white p-3 rounded-full shadow-lg transition"
-                    title="View History"
+                    variant="secondary"
+                    size="icon"
+                    className="fixed bottom-4 right-4 rounded-full shadow-lg"
+                    title={t.common.history}
                 >
-                    📜
-                </button>
+                    <Icon name="scrollText" size="md" />
+                </Button>
             )}
         </div>
     );
@@ -350,7 +348,6 @@ function getInitialScreen(game: Game): Screen {
         case "game_over":
             return { type: "game_over" };
         default: {
-            // Exhaustive check
             const _exhaustive: never = step;
             return _exhaustive;
         }

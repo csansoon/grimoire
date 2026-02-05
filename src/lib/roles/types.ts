@@ -1,4 +1,6 @@
 import { GameState, PlayerState, HistoryEntry } from "../types";
+import { IconName } from "../../components/atoms/icon";
+import { TeamId } from "../teams";
 
 // ============================================================================
 // NIGHT ACTION PROPS
@@ -38,8 +40,10 @@ export type RoleDefinition = {
     id: string;
     name: string;
     description: string;
-    team: "townsfolk" | "outsider" | "minion" | "demon";
-    icon: string;
+    /** Optional role-specific win condition. Falls back to team's win condition if not provided. */
+    winCondition?: string;
+    team: TeamId;
+    icon: IconName;
 
     // Night order - lower numbers wake first, null means doesn't wake at night
     nightOrder: number | null;

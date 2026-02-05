@@ -7,11 +7,13 @@ import {
     getGame,
     clearCurrentGame,
 } from "./lib/storage";
-import { MainMenu } from "./components/MainMenu";
-import { PlayerEntry } from "./components/NewGame/PlayerEntry";
-import { RoleSelection } from "./components/NewGame/RoleSelection";
-import { RoleAssignment } from "./components/NewGame/RoleAssignment";
-import { GameScreen } from "./components/Game/GameScreen";
+import {
+    MainMenu,
+    PlayerEntry,
+    RoleSelection,
+    RoleAssignment,
+    GameScreen,
+} from "./components/screens";
 
 type Screen =
     | { type: "main_menu" }
