@@ -15,13 +15,10 @@ const definition: RoleDefinition = {
     team: "demon",
     icon: "skull",
     nightOrder: 50,
-    skipsFirstNight: true, // Imp doesn't act on night 1
+    skipsFirstNight: true,
 
     RoleReveal: ({ player, onContinue }) => (
-        <RoleCard
-            player={player}
-            onContinue={onContinue}
-        />
+        <RoleCard player={player} onContinue={onContinue} />
     ),
 
     NightAction: ({ state, player, onComplete }) => {
@@ -75,18 +72,22 @@ const definition: RoleDefinition = {
                             key={p.id}
                             onClick={() => setSelectedTarget(p.id)}
                             className={cn(
-                                "w-full p-3 rounded-xl text-left transition-all duration-200 flex items-center justify-between",
+                                "w-full p-4 rounded-lg text-left transition-all duration-200 flex items-center justify-between border",
                                 selectedTarget === p.id
-                                    ? "bg-red-500/50 ring-2 ring-red-400"
-                                    : "bg-white/10 hover:bg-white/20"
+                                    ? "bg-red-900/50 border-red-600/60"
+                                    : "bg-white/5 border-white/10 hover:bg-white/10"
                             )}
                         >
                             <div className="flex items-center gap-3">
-                                <Icon name="user" size="md" className="text-white/70" />
-                                <span className="text-white font-medium">{p.name}</span>
+                                <Icon
+                                    name="user"
+                                    size="md"
+                                    className={selectedTarget === p.id ? "text-red-400" : "text-parchment-400"}
+                                />
+                                <span className="text-parchment-100 font-medium">{p.name}</span>
                             </div>
                             {selectedTarget === p.id && (
-                                <Icon name="check" size="md" className="text-red-300" />
+                                <Icon name="skull" size="md" className="text-red-400" />
                             )}
                         </button>
                     ))}
@@ -96,8 +97,10 @@ const definition: RoleDefinition = {
                     onClick={handleConfirm}
                     disabled={!selectedTarget}
                     fullWidth
-                    variant="danger"
+                    size="lg"
+                    className="bg-gradient-to-r from-red-700 to-red-900 font-tarot uppercase tracking-wider"
                 >
+                    <Icon name="skull" size="md" className="mr-2" />
                     {t.game.confirmKill}
                 </Button>
             </NightActionLayout>

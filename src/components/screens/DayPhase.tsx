@@ -1,166 +1,97 @@
-import { useState } from "react";
-import { GameState, hasEffect, getAlivePlayers } from "../../lib/types";
-import { getRole } from "../../lib/roles";
+import { GameState, PlayerState } from "../../lib/types";
 import { useI18n } from "../../lib/i18n";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Badge, Icon } from "../atoms";
+import { Button, Icon } from "../atoms";
+import { Grimoire } from "../items/Grimoire";
 
 type Props = {
     state: GameState;
-    onNominate: (nominatorId: string, nomineeId: string) => void;
+    onNominate: () => void;
     onEndDay: () => void;
+    onShowRoleCard?: (player: PlayerState) => void;
 };
 
-export function DayPhase({ state, onNominate, onEndDay }: Props) {
+export function DayPhase({ state, onNominate, onEndDay, onShowRoleCard }: Props) {
     const { t } = useI18n();
-    const [nominator, setNominator] = useState<string | null>(null);
-    const [nominee, setNominee] = useState<string | null>(null);
-
-    const alivePlayers = getAlivePlayers(state);
-
-    const handleNominate = () => {
-        if (nominator && nominee) {
-            onNominate(nominator, nominee);
-            setNominator(null);
-            setNominee(null);
-        }
-    };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-yellow-600 to-orange-700 p-4">
-            <div className="max-w-md mx-auto space-y-4">
-                {/* Header */}
-                <Card>
-                    <CardHeader className="text-center pb-2">
-                        <div className="flex justify-center mb-2">
-                            <Icon name="sun" size="3xl" className="text-yellow-300" />
-                        </div>
-                        <CardTitle>{t.game.day} {state.round}</CardTitle>
-                        <CardDescription>{t.game.discussionAndNominations}</CardDescription>
-                    </CardHeader>
-                </Card>
+        <div className="min-h-screen bg-gradient-to-b from-orange-950 via-amber-950 to-grimoire-dark flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-b from-amber-900/50 to-transparent px-4 py-6 text-center">
+                <div className="flex justify-center mb-2">
+                    <Icon name="sun" size="3xl" className="text-amber-400 text-glow-gold" />
+                </div>
+                <h1 className="font-tarot text-2xl text-parchment-100 tracking-widest-xl uppercase">
+                    {t.game.day} {state.round}
+                </h1>
+                <p className="text-parchment-400 text-sm">{t.game.discussionAndNominations}</p>
+            </div>
 
-                {/* Player Status */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                            <Icon name="userRound" size="md" />
-                            {t.common.players}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                            {state.players.map((player) => {
-                                const role = getRole(player.roleId);
-                                const isDead = hasEffect(player, "dead");
-                                const teamVariant = role?.team as
-                                    | "townsfolk"
-                                    | "outsider"
-                                    | "minion"
-                                    | "demon"
-                                    | undefined;
+            {/* Content */}
+            <div className="flex-1 px-4 pb-4 max-w-lg mx-auto w-full overflow-y-auto">
+                {/* Grimoire Section */}
+                <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                        <Icon name="scrollText" size="sm" className="text-mystic-gold" />
+                        <span className="font-tarot text-sm text-parchment-100 tracking-wider uppercase">
+                            {t.game.grimoire}
+                        </span>
+                    </div>
+                    <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+                        <Grimoire state={state} compact onShowRoleCard={onShowRoleCard} />
+                    </div>
+                </div>
 
-                                return (
-                                    <div
-                                        key={player.id}
-                                        className={`flex items-center justify-between p-2 rounded-lg ${
-                                            isDead
-                                                ? "bg-gray-800/50 text-gray-400"
-                                                : "bg-white/10 text-white"
-                                        }`}
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            {isDead && <Icon name="skull" size="sm" />}
-                                            {player.name}
-                                        </span>
-                                        {role && (
-                                            <Badge variant={isDead ? "dead" : teamVariant}>
-                                                <Icon name={role.icon} size="sm" />
-                                            </Badge>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </CardContent>
-                </Card>
+                {/* Divider */}
+                <div className="divider-mystic mb-6">
+                    <Icon name="sparkles" size="sm" className="text-mystic-gold/40" />
+                </div>
 
-                {/* Nomination Section */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">{t.game.newNomination}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {/* Nominator */}
-                        <div>
-                            <label className="text-white/70 text-sm block mb-1">
-                                {t.game.whoIsNominating}
-                            </label>
-                            <select
-                                value={nominator ?? ""}
-                                onChange={(e) =>
-                                    setNominator(e.target.value || null)
-                                }
-                                className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                            >
-                                <option value="" className="bg-gray-800">
-                                    {t.game.selectNominator}
-                                </option>
-                                {alivePlayers.map((p) => (
-                                    <option
-                                        key={p.id}
-                                        value={p.id}
-                                        className="bg-gray-800"
-                                    >
-                                        {p.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Nominee */}
-                        <div>
-                            <label className="text-white/70 text-sm block mb-1">
-                                {t.game.whoAreTheyNominating}
-                            </label>
-                            <select
-                                value={nominee ?? ""}
-                                onChange={(e) =>
-                                    setNominee(e.target.value || null)
-                                }
-                                className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                            >
-                                <option value="" className="bg-gray-800">
-                                    {t.game.selectNominee}
-                                </option>
-                                {alivePlayers
-                                    .filter((p) => p.id !== nominator)
-                                    .map((p) => (
-                                        <option
-                                            key={p.id}
-                                            value={p.id}
-                                            className="bg-gray-800"
-                                        >
-                                            {p.name}
-                                        </option>
-                                    ))}
-                            </select>
-                        </div>
-
-                        <Button
-                            onClick={handleNominate}
-                            disabled={!nominator || !nominee}
-                            fullWidth
-                            variant="danger"
+                {/* Daytime Actions */}
+                <div>
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                        <Icon name="swords" size="sm" className="text-red-400" />
+                        <span className="font-tarot text-sm text-parchment-100 tracking-wider uppercase">
+                            {t.game.daytimeActions}
+                        </span>
+                    </div>
+                    <div className="space-y-2">
+                        {/* Nomination Button */}
+                        <button
+                            onClick={onNominate}
+                            className="w-full flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-red-900/30 to-red-800/20 border border-red-500/30 hover:border-red-500/50 transition-colors group"
                         >
-                            {t.game.startNomination}
-                        </Button>
-                    </CardContent>
-                </Card>
+                            <div className="w-12 h-12 rounded-full bg-red-900/40 border border-red-500/40 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                <Icon name="userX" size="lg" className="text-red-400" />
+                            </div>
+                            <div className="flex-1 text-left">
+                                <div className="font-tarot text-parchment-100 tracking-wider uppercase">
+                                    {t.game.newNomination}
+                                </div>
+                                <p className="text-parchment-500 text-xs mt-0.5">
+                                    {t.game.accusePlayerDescription}
+                                </p>
+                            </div>
+                            <Icon name="arrowRight" size="md" className="text-parchment-500 group-hover:text-parchment-300 transition-colors" />
+                        </button>
 
-                {/* End Day Button */}
-                <Button onClick={onEndDay} fullWidth size="lg">
-                    {t.game.endDayGoToNight}
-                </Button>
+                        {/* More actions can be added here in the future */}
+                    </div>
+                </div>
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-grimoire-dark/95 backdrop-blur-sm border-t border-indigo-500/30 px-4 py-4">
+                <div className="max-w-lg mx-auto">
+                    <Button
+                        onClick={onEndDay}
+                        fullWidth
+                        size="lg"
+                        className="bg-gradient-to-r from-indigo-600 to-purple-700 font-tarot uppercase tracking-wider"
+                    >
+                        <Icon name="moon" size="md" className="mr-2" />
+                        {t.game.endDayGoToNight}
+                    </Button>
+                </div>
             </div>
         </div>
     );

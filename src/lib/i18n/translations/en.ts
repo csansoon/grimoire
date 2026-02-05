@@ -69,6 +69,11 @@ const en: Translations = {
         selectVictim: "Select your victim for tonight.",
         confirmKill: "Confirm Kill",
 
+        grimoire: "Grimoire",
+        daytimeActions: "Daytime Actions",
+        accusePlayerDescription: "Accuse a player and put them to vote",
+        nominatesForExecution: "{nominator} nominates {nominee} for execution",
+
         day: "Day",
         discussionAndNominations: "Discussion and nominations",
         newNomination: "New Nomination",
@@ -134,6 +139,11 @@ const en: Translations = {
     effects: {
         dead: "Dead",
         usedDeadVote: "Used dead vote",
+    },
+
+    ui: {
+        effects: "Effects",
+        seeRoleCard: "See Role Card",
     },
 };
 

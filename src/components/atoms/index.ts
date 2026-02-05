@@ -9,3 +9,15 @@ export {
     CardContent,
 } from "./card";
 export { Icon, type IconName, type IconProps } from "./icon";
+export {
+    Dialog,
+    DialogPortal,
+    DialogOverlay,
+    DialogClose,
+    DialogTrigger,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogBody,
+} from "./dialog";

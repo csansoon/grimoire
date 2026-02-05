@@ -3,13 +3,18 @@ import { TeamDefinition } from "../types";
 const definition: TeamDefinition = {
     id: "outsider",
     name: "Outsider",
-    icon: "userRound",
+    icon: "userX",
     winCondition: "Execute the Demon to win! But beware, your ability may hinder the town.",
+    isEvil: false,
     colors: {
-        gradient: "from-cyan-900 to-blue-900",
-        buttonGradient: "from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700",
+        cardBg: "bg-gradient-to-b from-parchment-100 to-parchment-300",
+        cardBorder: "border-mystic-silver/40",
+        cardText: "text-grimoire-dark",
+        gradient: "from-slate-950 via-cyan-950 to-slate-950",
+        buttonGradient: "from-mystic-silver to-slate-400 hover:from-slate-400 hover:to-mystic-silver",
         text: "text-cyan-300",
-        badge: "bg-cyan-500/20 border-cyan-500/50",
+        accent: "text-mystic-silver",
+        badge: "bg-cyan-500/20 border-cyan-400/50",
         badgeText: "text-cyan-200",
     },
 };

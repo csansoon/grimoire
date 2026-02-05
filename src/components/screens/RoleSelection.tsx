@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { getAllRoles } from "../../lib/roles";
 import { RoleDefinition } from "../../lib/roles/types";
+import { getTeam } from "../../lib/teams";
 import { useI18n, interpolate } from "../../lib/i18n";
-import { Button, Icon, Card, CardContent, CardHeader, CardTitle, CardDescription, Badge } from "../atoms";
+import { Button, Icon, Badge } from "../atoms";
 import { cn } from "../../lib/utils";
 
 type Props = {
@@ -55,13 +56,6 @@ export function RoleSelection({ players, onNext, onBack }: Props) {
         demon: allRoles.filter((r) => r.team === "demon"),
     };
 
-    const teamConfig: Record<string, { gradient: string; variant: "townsfolk" | "outsider" | "minion" | "demon" }> = {
-        townsfolk: { gradient: "from-blue-500 to-blue-600", variant: "townsfolk" },
-        outsider: { gradient: "from-cyan-500 to-cyan-600", variant: "outsider" },
-        minion: { gradient: "from-orange-500 to-orange-600", variant: "minion" },
-        demon: { gradient: "from-red-600 to-red-700", variant: "demon" },
-    };
-
     const getRoleName = (role: RoleDefinition) => {
         const roleId = role.id as keyof typeof t.roles;
         return t.roles[roleId]?.name ?? role.name;
@@ -73,129 +67,142 @@ export function RoleSelection({ players, onNext, onBack }: Props) {
     };
 
     const getTeamName = (teamId: string) => {
-        const team = teamId as keyof typeof t.teams;
-        return t.teams[team]?.name ?? teamId;
+        const key = teamId as keyof typeof t.teams;
+        return t.teams[key]?.name ?? teamId;
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-900 p-4">
-            <div className="max-w-md mx-auto space-y-4">
-                {/* Header */}
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center gap-3">
-                            <Button onClick={onBack} variant="ghost" size="icon">
-                                <Icon name="arrowLeft" size="md" />
-                            </Button>
-                            <div>
-                                <CardTitle>{t.newGame.step2Title}</CardTitle>
-                                <CardDescription>{t.newGame.step2Subtitle}</CardDescription>
-                            </div>
+        <div className="min-h-screen bg-gradient-to-b from-grimoire-purple via-grimoire-dark to-grimoire-darker flex flex-col">
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-grimoire-dark/95 backdrop-blur-sm border-b border-mystic-gold/20 px-4 py-3">
+                <div className="flex items-center gap-3 max-w-lg mx-auto">
+                    <button
+                        onClick={onBack}
+                        className="p-2 -ml-2 text-parchment-400 hover:text-parchment-100 transition-colors"
+                    >
+                        <Icon name="arrowLeft" size="md" />
+                    </button>
+                    <div className="flex-1">
+                        <h1 className="font-tarot text-lg text-parchment-100 tracking-wider uppercase">
+                            {t.newGame.step2Title}
+                        </h1>
+                        <p className="text-xs text-parchment-500">{t.newGame.step2Subtitle}</p>
+                    </div>
+                    {/* Status */}
+                    <div className="text-right">
+                        <div className="text-xs text-parchment-400">
+                            {t.common.roles}: <span className="text-parchment-100">{totalRoles}</span> / {players.length}
                         </div>
-                    </CardHeader>
-                </Card>
+                    </div>
+                </div>
+            </div>
 
-                {/* Status Bar */}
-                <Card>
-                    <CardContent className="py-4">
-                        <div className="flex justify-between text-white mb-2">
-                            <span>{t.common.players}: {players.length}</span>
-                            <span>{t.common.roles}: {totalRoles}</span>
-                        </div>
+            {/* Warnings */}
+            {(totalRoles < players.length || impCount < 1) && (
+                <div className="px-4 py-2 bg-mystic-crimson/20 border-b border-red-500/30">
+                    <div className="max-w-lg mx-auto space-y-1">
                         {totalRoles < players.length && (
-                            <div className="flex items-center gap-2 text-yellow-300 text-sm">
+                            <div className="flex items-center gap-2 text-red-300 text-xs">
                                 <Icon name="alertTriangle" size="sm" />
                                 {interpolate(t.newGame.needAtLeastRoles, { count: players.length })}
                             </div>
                         )}
                         {impCount < 1 && (
-                            <div className="flex items-center gap-2 text-red-300 text-sm">
+                            <div className="flex items-center gap-2 text-red-300 text-xs">
                                 <Icon name="alertTriangle" size="sm" />
                                 {t.newGame.needAtLeastImp}
                             </div>
                         )}
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
+            )}
 
-                {/* Role Selection by Team */}
-                {Object.entries(rolesByTeam).map(([team, roles]) => {
-                    const config = teamConfig[team];
+            {/* Content */}
+            <div className="flex-1 px-4 py-4 max-w-lg mx-auto w-full overflow-y-auto">
+                {Object.entries(rolesByTeam).map(([teamId, roles]) => {
+                    if (roles.length === 0) return null;
+                    const team = getTeam(teamId as "townsfolk" | "outsider" | "minion" | "demon");
+                    
                     return (
-                        <Card key={team}>
-                            <CardHeader className="pb-2">
-                                <CardTitle
-                                    className={cn(
-                                        "text-lg px-3 py-1.5 rounded-lg bg-gradient-to-r inline-flex w-fit",
-                                        config.gradient
-                                    )}
-                                >
-                                    {getTeamName(team)}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-2">
+                        <div key={teamId} className="mb-6">
+                            {/* Team Header */}
+                            <div className="flex items-center gap-2 mb-3">
+                                <Icon name={team.icon} size="sm" className={team.colors.text} />
+                                <span className={cn("text-sm font-tarot tracking-wider uppercase", team.colors.text)}>
+                                    {getTeamName(teamId)}
+                                </span>
+                            </div>
+
+                            {/* Role List */}
+                            <div className="space-y-2">
                                 {roles.map((role) => {
                                     const count = roleCounts[role.id] ?? 0;
                                     const desc = getRoleDescription(role);
+                                    
                                     return (
                                         <div
                                             key={role.id}
-                                            className="bg-white/5 rounded-xl p-3 flex items-center justify-between"
+                                            className={cn(
+                                                "rounded-lg p-3 border transition-colors",
+                                                count > 0
+                                                    ? "bg-white/5 border-white/20"
+                                                    : "bg-transparent border-white/10"
+                                            )}
                                         >
-                                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <Icon name={role.icon} size="xl" />
-                                                <div className="min-w-0">
-                                                    <div className="text-white font-medium">
+                                            <div className="flex items-center gap-3">
+                                                <Icon name={role.icon} size="lg" className={team.colors.text} />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-parchment-100 font-medium text-sm">
                                                         {getRoleName(role)}
                                                     </div>
-                                                    <div className="text-white/50 text-xs truncate">
-                                                        {desc.length > 40
-                                                            ? desc.slice(0, 40) + "..."
-                                                            : desc}
+                                                    <div className="text-parchment-500 text-xs truncate">
+                                                        {desc.length > 50 ? desc.slice(0, 50) + "..." : desc}
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Button
-                                                    onClick={() => decrementRole(role.id)}
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8"
-                                                >
-                                                    <Icon name="minus" size="sm" />
-                                                </Button>
-                                                <Badge
-                                                    variant={count > 0 ? config.variant : "default"}
-                                                    className="w-8 justify-center"
-                                                >
-                                                    {count}
-                                                </Badge>
-                                                <Button
-                                                    onClick={() => incrementRole(role.id)}
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8"
-                                                >
-                                                    <Icon name="plus" size="sm" />
-                                                </Button>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={() => decrementRole(role.id)}
+                                                        className="w-8 h-8 flex items-center justify-center text-parchment-400 hover:text-parchment-100 hover:bg-white/10 rounded-lg transition-colors"
+                                                    >
+                                                        <Icon name="minus" size="sm" />
+                                                    </button>
+                                                    <Badge
+                                                        variant={count > 0 ? role.team : "default"}
+                                                        className="w-8 justify-center"
+                                                    >
+                                                        {count}
+                                                    </Badge>
+                                                    <button
+                                                        onClick={() => incrementRole(role.id)}
+                                                        className="w-8 h-8 flex items-center justify-center text-parchment-400 hover:text-parchment-100 hover:bg-white/10 rounded-lg transition-colors"
+                                                    >
+                                                        <Icon name="plus" size="sm" />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     );
                                 })}
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </div>
                     );
                 })}
+            </div>
 
-                {/* Next Button */}
-                <Button
-                    onClick={handleNext}
-                    disabled={!canProceed}
-                    fullWidth
-                    size="lg"
-                >
-                    {t.newGame.nextAssignRoles}
-                    <Icon name="arrowRight" size="md" className="ml-2" />
-                </Button>
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-grimoire-dark/95 backdrop-blur-sm border-t border-mystic-gold/20 px-4 py-4">
+                <div className="max-w-lg mx-auto">
+                    <Button
+                        onClick={handleNext}
+                        disabled={!canProceed}
+                        fullWidth
+                        size="lg"
+                        className="bg-gradient-to-r from-mystic-gold to-mystic-bronze text-grimoire-dark font-tarot uppercase tracking-wider"
+                    >
+                        {t.newGame.nextAssignRoles}
+                        <Icon name="arrowRight" size="md" className="ml-2" />
+                    </Button>
+                </div>
             </div>
         </div>
     );

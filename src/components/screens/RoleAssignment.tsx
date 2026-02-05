@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
 import { getRole } from "../../lib/roles";
+import { getTeam } from "../../lib/teams";
 import { useI18n, interpolate } from "../../lib/i18n";
-import { Button, Icon, Card, CardContent, CardHeader, CardTitle, CardDescription, Badge } from "../atoms";
+import { Button, Icon, Badge } from "../atoms";
+import { cn } from "../../lib/utils";
 
 type Props = {
     players: string[];
@@ -113,159 +115,142 @@ export function RoleAssignment({ players, selectedRoles, onStart, onBack }: Prop
     const impWillBeAssigned = impManuallyAssigned || (willBeRandomlyAssigned > 0 && impInRandomPool);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-900 p-4">
-            <div className="max-w-md mx-auto space-y-4">
-                {/* Header */}
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center gap-3">
-                            <Button onClick={onBack} variant="ghost" size="icon">
-                                <Icon name="arrowLeft" size="md" />
-                            </Button>
-                            <div>
-                                <CardTitle>{t.newGame.step3Title}</CardTitle>
-                                <CardDescription>{t.newGame.step3Subtitle}</CardDescription>
-                            </div>
-                        </div>
-                    </CardHeader>
-                </Card>
+        <div className="min-h-screen bg-gradient-to-b from-grimoire-purple via-grimoire-dark to-grimoire-darker flex flex-col">
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-grimoire-dark/95 backdrop-blur-sm border-b border-mystic-gold/20 px-4 py-3">
+                <div className="flex items-center gap-3 max-w-lg mx-auto">
+                    <button
+                        onClick={onBack}
+                        className="p-2 -ml-2 text-parchment-400 hover:text-parchment-100 transition-colors"
+                    >
+                        <Icon name="arrowLeft" size="md" />
+                    </button>
+                    <div>
+                        <h1 className="font-tarot text-lg text-parchment-100 tracking-wider uppercase">
+                            {t.newGame.step3Title}
+                        </h1>
+                        <p className="text-xs text-parchment-500">{t.newGame.step3Subtitle}</p>
+                    </div>
+                </div>
+            </div>
 
+            {/* Warning */}
+            {!impWillBeAssigned && selectedRoles.includes("imp") && (
+                <div className="px-4 py-3 bg-mystic-crimson/20 border-b border-red-500/30">
+                    <div className="max-w-lg mx-auto flex items-start gap-2">
+                        <Icon name="alertTriangle" size="sm" className="text-red-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-red-200 text-xs">{t.newGame.impNotAssignedWarning}</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Content */}
+            <div className="flex-1 px-4 py-4 max-w-lg mx-auto w-full overflow-y-auto">
                 {/* Info */}
-                <Card>
-                    <CardContent className="py-4">
-                        <p className="text-white/70 text-sm mb-3">
-                            {t.newGame.assignmentInfo}
-                        </p>
-                        <Button
-                            onClick={handleRandomizeAll}
-                            variant="ghost"
-                            size="sm"
-                            className="text-purple-300"
-                        >
-                            <Icon name="shuffle" size="sm" className="mr-2" />
-                            {t.newGame.resetToRandom}
-                        </Button>
-                    </CardContent>
-                </Card>
+                <div className="flex items-center justify-between mb-4">
+                    <p className="text-parchment-500 text-xs">{t.newGame.assignmentInfo}</p>
+                    <button
+                        onClick={handleRandomizeAll}
+                        className="text-xs text-mystic-gold/70 hover:text-mystic-gold flex items-center gap-1 transition-colors"
+                    >
+                        <Icon name="shuffle" size="xs" />
+                        {t.newGame.resetToRandom}
+                    </button>
+                </div>
 
                 {/* Player Assignments */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">{t.newGame.playerAssignments}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        {players.map((playerName) => {
-                            const currentRole = assignments[playerName];
-                            const availableRoles = getAvailableRoles(playerName);
-                            const role = currentRole ? getRole(currentRole) : null;
-                            const teamVariant = role?.team as "townsfolk" | "outsider" | "minion" | "demon" | undefined;
+                <div className="space-y-3 mb-6">
+                    {players.map((playerName) => {
+                        const currentRole = assignments[playerName];
+                        const availableRoles = getAvailableRoles(playerName);
+                        const role = currentRole ? getRole(currentRole) : null;
+                        const team = role ? getTeam(role.team) : null;
 
-                            return (
-                                <div
-                                    key={playerName}
-                                    className="bg-white/5 rounded-xl p-4"
-                                >
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-white font-medium">
-                                            {playerName}
-                                        </span>
-                                        {role ? (
-                                            <Badge variant={teamVariant} className="inline-flex items-center gap-1">
-                                                <Icon name={role.icon} size="xs" /> {getRoleName(role.id)}
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="default" className="bg-white/10">
-                                                <Icon name="dices" size="xs" className="mr-1" />
-                                                {t.common.random}
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    <select
-                                        value={currentRole ?? ""}
-                                        onChange={(e) =>
-                                            handleAssignment(
-                                                playerName,
-                                                e.target.value || null
-                                            )
-                                        }
-                                        className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                                    >
-                                        <option value="" className="bg-gray-800">
-                                            🎲 {t.common.random}
-                                        </option>
-                                        {availableRoles.map((roleId) => {
-                                            const r = getRole(roleId);
-                                            if (!r) return null;
-                                            return (
-                                                <option
-                                                    key={roleId}
-                                                    value={roleId}
-                                                    className="bg-gray-800"
-                                                >
-                                                    {getRoleName(roleId)}
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                </div>
-                            );
-                        })}
-                    </CardContent>
-                </Card>
-
-                {/* Remaining Roles Pool */}
-                {rolesInRandomPool.length > 0 && willBeRandomlyAssigned > 0 && (
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <Icon name="dices" size="md" />
-                                {t.newGame.randomPool}
-                            </CardTitle>
-                            <CardDescription>
-                                {interpolate(t.newGame.rolesForPlayers, {
-                                    roles: rolesInRandomPool.length,
-                                    players: willBeRandomlyAssigned,
-                                })}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-wrap gap-2">
-                                {rolesInRandomPool.map((roleId, i) => {
-                                    const r = getRole(roleId);
-                                    const teamVariant = r?.team as "townsfolk" | "outsider" | "minion" | "demon" | undefined;
-                                    return (
-                                        <Badge key={`${roleId}-${i}`} variant={teamVariant} className="inline-flex items-center gap-1">
-                                            {r && <Icon name={r.icon} size="xs" />} {getRoleName(roleId)}
+                        return (
+                            <div
+                                key={playerName}
+                                className="rounded-lg border border-white/10 bg-white/5 p-3"
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-parchment-100 font-medium text-sm">
+                                        {playerName}
+                                    </span>
+                                    {role ? (
+                                        <Badge variant={role.team} className="inline-flex items-center gap-1">
+                                            <Icon name={role.icon} size="xs" /> {getRoleName(role.id)}
                                         </Badge>
-                                    );
-                                })}
+                                    ) : (
+                                        <span className="flex items-center gap-1 text-parchment-500 text-xs">
+                                            <Icon name="dices" size="xs" />
+                                            {t.common.random}
+                                        </span>
+                                    )}
+                                </div>
+                                <select
+                                    value={currentRole ?? ""}
+                                    onChange={(e) => handleAssignment(playerName, e.target.value || null)}
+                                    className={cn(
+                                        "w-full bg-grimoire-dark border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-mystic-gold/50 transition-colors",
+                                        currentRole && team
+                                            ? cn(team.colors.cardBorder, "text-parchment-100")
+                                            : "border-white/20 text-parchment-400"
+                                    )}
+                                >
+                                    <option value="" className="bg-grimoire-dark">
+                                        🎲 {t.common.random}
+                                    </option>
+                                    {availableRoles.map((roleId) => {
+                                        const r = getRole(roleId);
+                                        if (!r) return null;
+                                        return (
+                                            <option key={roleId} value={roleId} className="bg-grimoire-dark">
+                                                {getRoleName(roleId)}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
                             </div>
-                        </CardContent>
-                    </Card>
-                )}
+                        );
+                    })}
+                </div>
 
-                {/* Warning */}
-                {!impWillBeAssigned && selectedRoles.includes("imp") && (
-                    <Card className="border border-red-500/50 bg-red-500/10">
-                        <CardContent className="py-4 flex items-start gap-3">
-                            <Icon name="alertTriangle" size="md" className="text-red-400 flex-shrink-0 mt-0.5" />
-                            <p className="text-red-200 text-sm">
-                                {t.newGame.impNotAssignedWarning}
-                            </p>
-                        </CardContent>
-                    </Card>
+                {/* Random Pool */}
+                {rolesInRandomPool.length > 0 && willBeRandomlyAssigned > 0 && (
+                    <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-2 text-parchment-400">
+                            <Icon name="dices" size="sm" />
+                            <span className="text-xs tracking-wider uppercase">{t.newGame.randomPool}</span>
+                            <span className="text-xs text-parchment-500">
+                                ({interpolate(t.newGame.rolesForPlayers, { roles: rolesInRandomPool.length, players: willBeRandomlyAssigned })})
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {rolesInRandomPool.map((roleId, i) => {
+                                const r = getRole(roleId);
+                                return (
+                                    <Badge key={`${roleId}-${i}`} variant={r?.team} className="inline-flex items-center gap-1">
+                                        {r && <Icon name={r.icon} size="xs" />} {getRoleName(roleId)}
+                                    </Badge>
+                                );
+                            })}
+                        </div>
+                    </div>
                 )}
+            </div>
 
-                {/* Start Button */}
-                <Button
-                    onClick={handleStart}
-                    variant="primary"
-                    fullWidth
-                    size="lg"
-                >
-                    <Icon name="play" size="md" className="mr-2" />
-                    {t.common.startGame}
-                </Button>
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-grimoire-dark/95 backdrop-blur-sm border-t border-mystic-gold/20 px-4 py-4">
+                <div className="max-w-lg mx-auto">
+                    <Button
+                        onClick={handleStart}
+                        fullWidth
+                        size="lg"
+                        className="bg-gradient-to-r from-mystic-gold to-mystic-bronze text-grimoire-dark font-tarot uppercase tracking-wider"
+                    >
+                        <Icon name="play" size="md" className="mr-2" />
+                        {t.common.startGame}
+                    </Button>
+                </div>
             </div>
         </div>
     );

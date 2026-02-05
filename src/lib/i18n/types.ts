@@ -75,6 +75,12 @@ export type Translations = {
         selectVictim: string;
         confirmKill: string;
 
+        // Grimoire
+        grimoire: string;
+        daytimeActions: string;
+        accusePlayerDescription: string;
+        nominatesForExecution: string;
+
         // Day
         day: string;
         discussionAndNominations: string;
@@ -147,5 +153,11 @@ export type Translations = {
     effects: {
         dead: string;
         usedDeadVote: string;
+    };
+
+    // UI
+    ui: {
+        effects: string;
+        seeRoleCard: string;
     };
 };

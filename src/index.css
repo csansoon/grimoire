@@ -1,18 +1,121 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  body {
+    @apply font-body bg-grimoire-dark text-white;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@layer components {
+  /* Tarot card frame decorations */
+  .tarot-frame {
+    position: relative;
+  }
+  
+  .tarot-frame::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 0.5rem;
+    pointer-events: none;
+  }
+
+  /* Ornate corner decorations */
+  .tarot-corner {
+    @apply absolute w-6 h-6 text-mystic-gold/50;
+  }
+
+  .tarot-corner-tl { @apply top-3 left-3; }
+  .tarot-corner-tr { @apply top-3 right-3 rotate-90; }
+  .tarot-corner-bl { @apply bottom-3 left-3 -rotate-90; }
+  .tarot-corner-br { @apply bottom-3 right-3 rotate-180; }
+
+  /* Mystical divider */
+  .divider-mystic {
+    @apply flex items-center gap-4 my-4;
+  }
+
+  .divider-mystic::before,
+  .divider-mystic::after {
+    content: '';
+    @apply flex-1 h-px bg-gradient-to-r from-transparent via-mystic-gold/30 to-transparent;
+  }
+
+  /* Glowing text effect */
+  .text-glow-gold {
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+  }
+
+  .text-glow-crimson {
+    text-shadow: 0 0 10px rgba(139, 0, 0, 0.7);
+  }
+
+  /* Subtle parchment texture overlay */
+  .parchment-texture {
+    background-image: 
+      radial-gradient(ellipse at 20% 20%, rgba(255,250,240,0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(255,250,240,0.02) 0%, transparent 50%);
+  }
 }
 
+@layer utilities {
+  .tracking-widest-xl {
+    letter-spacing: 0.2em;
+  }
+}
+
+/* Dialog animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slideInFromBottom {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slideOutToBottom {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+.animate-in {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: forwards;
+}
+
+.animate-out {
+  animation-duration: 200ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: forwards;
+}
+
+.fade-in-0 {
+  animation-name: fadeIn;
+}
+
+.fade-out-0 {
+  animation-name: fadeOut;
+}
+
+.slide-in-from-bottom {
+  animation-name: slideInFromBottom;
+}
+
+.slide-out-to-bottom {
+  animation-name: slideOutToBottom;
+}

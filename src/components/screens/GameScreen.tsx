@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
-import { Game, getCurrentState, getPlayer } from "../../lib/types";
+import { Game, getCurrentState, getPlayer, PlayerState } from "../../lib/types";
 import { getRole } from "../../lib/roles";
+import { RoleCard } from "../items/RoleCard";
 import {
     getNextStep,
     markRoleRevealed,
@@ -17,10 +18,12 @@ import { saveGame } from "../../lib/storage";
 import { useI18n, interpolate } from "../../lib/i18n";
 import { NarratorPrompt } from "./NarratorPrompt";
 import { DayPhase } from "./DayPhase";
+import { NominationScreen } from "./NominationScreen";
 import { VotingPhase } from "./VotingPhase";
 import { GameOver } from "./GameOver";
 import { HistoryView } from "./HistoryView";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Icon } from "../atoms";
+import { GrimoireModal } from "../items/GrimoireModal";
+import { Button, Icon } from "../atoms";
 
 type Props = {
     initialGame: Game;
@@ -33,15 +36,17 @@ type Screen =
     | { type: "night_action"; playerId: string; roleId: string }
     | { type: "night_waiting" }
     | { type: "day" }
+    | { type: "nomination" }
     | { type: "voting"; nomineeId: string }
     | { type: "game_over" }
-    | { type: "history" };
+    | { type: "grimoire_role_card"; playerId: string; returnTo: Screen };
 
 export function GameScreen({ initialGame, onMainMenu }: Props) {
     const { t } = useI18n();
     const [game, setGame] = useState<Game>(initialGame);
     const [screen, setScreen] = useState<Screen>(() => getInitialScreen(initialGame));
     const [showHistory, setShowHistory] = useState(false);
+    const [showGrimoire, setShowGrimoire] = useState(false);
 
     const state = getCurrentState(game);
 
@@ -158,6 +163,10 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         }
     };
 
+    const handleOpenNomination = () => {
+        setScreen({ type: "nomination" });
+    };
+
     const handleNominate = (nominatorId: string, nomineeId: string) => {
         const newGame = nominate(game, nominatorId, nomineeId);
         updateGame(newGame);
@@ -188,6 +197,25 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
 
     const handleCancelVote = () => {
         setScreen({ type: "day" });
+    };
+
+    const handleBackFromNomination = () => {
+        setScreen({ type: "day" });
+    };
+
+    const handleShowRoleCard = (player: PlayerState) => {
+        setShowGrimoire(false);
+        setScreen({ 
+            type: "grimoire_role_card", 
+            playerId: player.id, 
+            returnTo: screen 
+        });
+    };
+
+    const handleRoleCardClose = () => {
+        if (screen.type === "grimoire_role_card") {
+            setScreen(screen.returnTo);
+        }
     };
 
     if (showHistory) {
@@ -244,31 +272,36 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
 
             case "night_waiting":
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-indigo-900 to-purple-900 flex items-center justify-center p-6">
-                        <Card className="max-w-md w-full">
-                            <CardHeader className="text-center">
-                                <div className="flex justify-center mb-4">
-                                    <Icon name="moon" size="4xl" className="text-indigo-400" />
+                    <div className="min-h-screen bg-gradient-to-b from-indigo-950 via-grimoire-purple to-grimoire-darker flex items-center justify-center p-4">
+                        <div className="max-w-sm w-full text-center">
+                            {/* Moon icon */}
+                            <div className="mb-8">
+                                <div className="w-24 h-24 mx-auto rounded-full bg-indigo-500/10 border border-indigo-400/30 flex items-center justify-center">
+                                    <Icon name="moon" size="3xl" className="text-indigo-400" />
                                 </div>
-                                <CardTitle>
-                                    {interpolate(t.game.nightComplete, { round: state.round })}
-                                </CardTitle>
-                                <CardDescription>
-                                    {t.game.nightActionsResolved}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Button
-                                    onClick={handleStartDay}
-                                    fullWidth
-                                    size="lg"
-                                    className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
-                                >
-                                    <Icon name="sun" size="md" className="mr-2" />
-                                    {t.game.startDay}
-                                </Button>
-                            </CardContent>
-                        </Card>
+                            </div>
+
+                            <h1 className="font-tarot text-2xl text-parchment-100 tracking-wider uppercase mb-2">
+                                {interpolate(t.game.nightComplete, { round: state.round })}
+                            </h1>
+                            <p className="text-parchment-400 text-sm mb-8">
+                                {t.game.nightActionsResolved}
+                            </p>
+
+                            <div className="divider-mystic mb-8">
+                                <Icon name="sparkles" size="sm" className="text-indigo-400/40" />
+                            </div>
+
+                            <Button
+                                onClick={handleStartDay}
+                                fullWidth
+                                size="lg"
+                                className="bg-gradient-to-r from-amber-500 to-orange-600 text-grimoire-dark font-tarot uppercase tracking-wider"
+                            >
+                                <Icon name="sun" size="md" className="mr-2" />
+                                {t.game.startDay}
+                            </Button>
+                        </div>
                     </div>
                 );
 
@@ -276,8 +309,29 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                 return (
                     <DayPhase
                         state={state}
-                        onNominate={handleNominate}
+                        onNominate={handleOpenNomination}
                         onEndDay={handleEndDay}
+                        onShowRoleCard={handleShowRoleCard}
+                    />
+                );
+
+            case "grimoire_role_card": {
+                const player = getPlayer(state, screen.playerId);
+                if (!player) return null;
+                return (
+                    <RoleCard
+                        player={player}
+                        onContinue={handleRoleCardClose}
+                    />
+                );
+            }
+
+            case "nomination":
+                return (
+                    <NominationScreen
+                        state={state}
+                        onNominate={handleNominate}
+                        onBack={handleBackFromNomination}
                     />
                 );
 
@@ -299,26 +353,48 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         }
     };
 
-    const showHistoryButton =
-        screen.type !== "role_reveal" &&
-        screen.type !== "night_action" &&
-        screen.type !== "game_over";
+    // Determine which floating buttons to show
+    const isPlayerFacingScreen = 
+        screen.type === "role_reveal" || 
+        screen.type === "night_action" ||
+        screen.type === "grimoire_role_card";
+    
+    const showFloatingButtons = !isPlayerFacingScreen && screen.type !== "game_over";
 
     return (
         <div className="relative">
             {renderScreen()}
 
-            {showHistoryButton && (
-                <Button
-                    onClick={() => setShowHistory(true)}
-                    variant="secondary"
-                    size="icon"
-                    className="fixed bottom-4 right-4 rounded-full shadow-lg"
-                    title={t.common.history}
-                >
-                    <Icon name="scrollText" size="md" />
-                </Button>
+            {/* Floating Action Buttons */}
+            {showFloatingButtons && (
+                <div className="fixed bottom-4 right-4 flex flex-col gap-2">
+                    {/* Grimoire Button */}
+                    <button
+                        onClick={() => setShowGrimoire(true)}
+                        className="w-12 h-12 rounded-full bg-grimoire-dark/90 border border-mystic-gold/30 text-mystic-gold flex items-center justify-center shadow-lg hover:bg-grimoire-dark hover:border-mystic-gold/50 transition-colors"
+                        title="Grimoire"
+                    >
+                        <Icon name="scrollText" size="md" />
+                    </button>
+                    
+                    {/* History Button */}
+                    <button
+                        onClick={() => setShowHistory(true)}
+                        className="w-12 h-12 rounded-full bg-grimoire-dark/90 border border-parchment-500/30 text-parchment-400 flex items-center justify-center shadow-lg hover:bg-grimoire-dark hover:border-parchment-400/50 hover:text-parchment-300 transition-colors"
+                        title={t.common.history}
+                    >
+                        <Icon name="clock" size="md" />
+                    </button>
+                </div>
             )}
+
+            {/* Grimoire Modal */}
+            <GrimoireModal
+                state={state}
+                open={showGrimoire}
+                onClose={() => setShowGrimoire(false)}
+                onShowRoleCard={handleShowRoleCard}
+            />
         </div>
     );
 }

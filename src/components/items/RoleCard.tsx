@@ -2,7 +2,7 @@ import { PlayerState } from "../../lib/types";
 import { getRole } from "../../lib/roles";
 import { getTeam, TeamId } from "../../lib/teams";
 import { useI18n } from "../../lib/i18n";
-import { Button, Icon, Card, CardContent, CardHeader, Badge } from "../atoms";
+import { Button, Icon } from "../atoms";
 import { cn } from "../../lib/utils";
 
 type Props = {
@@ -16,12 +16,8 @@ export function RoleCard({ player, onContinue }: Props) {
 
     if (!role) {
         return (
-            <div className="min-h-screen bg-gray-900 flex items-center justify-center p-6">
-                <Card>
-                    <CardContent className="p-8 text-center">
-                        <p className="text-red-400">Unknown role: {player.roleId}</p>
-                    </CardContent>
-                </Card>
+            <div className="min-h-screen bg-grimoire-dark flex items-center justify-center p-4">
+                <p className="text-red-400 font-tarot">Unknown role: {player.roleId}</p>
             </div>
         );
     }
@@ -30,7 +26,6 @@ export function RoleCard({ player, onContinue }: Props) {
     const roleId = role.id as keyof typeof t.roles;
     const teamId = role.team as TeamId;
 
-    // Get translated role info (with fallback to definition)
     const roleTranslation = t.roles[roleId];
     const teamTranslation = t.teams[teamId];
 
@@ -39,60 +34,145 @@ export function RoleCard({ player, onContinue }: Props) {
     const teamName = teamTranslation?.name ?? team.name;
     const winCondition = role.winCondition ?? teamTranslation?.winCondition ?? team.winCondition;
 
+    const isEvil = team.isEvil;
+
     return (
         <div
             className={cn(
-                "min-h-screen flex items-center justify-center p-6 bg-gradient-to-br",
+                "min-h-screen flex items-center justify-center p-4 bg-gradient-to-br",
                 team.colors.gradient
             )}
         >
-            <Card className="max-w-md w-full">
-                <CardHeader className="text-center pb-2">
-                    <div className="flex justify-center mb-4">
-                        <Icon name={role.icon} size="4xl" className={team.colors.text} />
-                    </div>
-                    <h2 className="text-3xl font-bold text-white mb-1">
+            {/* The Tarot Card */}
+            <div
+                className={cn(
+                    "relative w-full max-w-sm mx-auto rounded-xl border-2 shadow-tarot overflow-hidden",
+                    team.colors.cardBg,
+                    team.colors.cardBorder
+                )}
+            >
+                {/* Inner decorative border */}
+                <div className="absolute inset-3 border border-current opacity-20 rounded-lg pointer-events-none" />
+                
+                {/* Corner Icons */}
+                <div className="tarot-corner tarot-corner-tl">
+                    <Icon name={role.icon} size="sm" className={team.colors.accent} />
+                </div>
+                <div className="tarot-corner tarot-corner-tr">
+                    <Icon name={role.icon} size="sm" className={team.colors.accent} />
+                </div>
+                <div className="tarot-corner tarot-corner-bl">
+                    <Icon name={role.icon} size="sm" className={team.colors.accent} />
+                </div>
+                <div className="tarot-corner tarot-corner-br">
+                    <Icon name={role.icon} size="sm" className={team.colors.accent} />
+                </div>
+
+                {/* Card Content */}
+                <div className="relative z-10 px-8 py-10 parchment-texture">
+                    {/* Player Name */}
+                    <p className={cn(
+                        "text-center text-sm tracking-widest uppercase mb-6 opacity-70",
+                        team.colors.cardText
+                    )}>
                         {player.name}
-                    </h2>
-                    <p className="text-white/60 text-sm mb-4">{t.common.youAreThe}</p>
-                    <h1 className={cn("text-4xl font-bold mb-3", team.colors.text)}>
-                        {roleName}
-                    </h1>
-                    <div className="flex justify-center">
-                        <Badge variant={role.team} className="capitalize">
-                            {teamName}
-                        </Badge>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="bg-white/5 rounded-xl p-4">
-                        <p className="text-white/90 text-center">
-                            {roleDescription}
-                        </p>
+                    </p>
+
+                    {/* Role Icon (Large, centered) */}
+                    <div className="flex justify-center mb-6">
+                        <div className={cn(
+                            "w-24 h-24 rounded-full flex items-center justify-center",
+                            isEvil 
+                                ? "bg-red-900/30 border border-red-600/40" 
+                                : "bg-mystic-gold/10 border border-mystic-gold/30"
+                        )}>
+                            <Icon 
+                                name={role.icon} 
+                                size="4xl" 
+                                className={cn(
+                                    isEvil ? "text-red-400 text-glow-crimson" : "text-mystic-gold text-glow-gold"
+                                )} 
+                            />
+                        </div>
                     </div>
 
-                    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    {/* Role Name */}
+                    <h1 className={cn(
+                        "font-tarot text-3xl font-bold text-center uppercase tracking-widest-xl mb-2",
+                        team.colors.cardText,
+                        isEvil ? "text-glow-crimson" : ""
+                    )}>
+                        {roleName}
+                    </h1>
+
+                    {/* Team Badge */}
+                    <p className={cn(
+                        "text-center text-xs tracking-widest uppercase mb-6",
+                        isEvil ? "text-red-400/70" : "text-mystic-gold/70"
+                    )}>
+                        {teamName}
+                    </p>
+
+                    {/* Divider */}
+                    <div className="divider-mystic">
+                        <Icon 
+                            name={isEvil ? "skull" : "sparkles"} 
+                            size="sm" 
+                            className={isEvil ? "text-red-500/50" : "text-mystic-gold/50"} 
+                        />
+                    </div>
+
+                    {/* Description */}
+                    <p className={cn(
+                        "text-center text-sm leading-relaxed mb-6",
+                        team.colors.cardText,
+                        "opacity-80"
+                    )}>
+                        {roleDescription}
+                    </p>
+
+                    {/* Win Condition */}
+                    <div className={cn(
+                        "rounded-lg p-4 mb-6",
+                        isEvil ? "bg-red-950/50 border border-red-600/30" : "bg-mystic-gold/10 border border-mystic-gold/20"
+                    )}>
                         <div className="flex items-center justify-center gap-2 mb-2">
-                            <Icon name="trophy" size="sm" className={team.colors.text} />
-                            <span className={cn("text-sm font-semibold", team.colors.text)}>
+                            <Icon 
+                                name="trophy" 
+                                size="sm" 
+                                className={isEvil ? "text-red-400" : "text-mystic-gold"} 
+                            />
+                            <span className={cn(
+                                "text-xs font-semibold uppercase tracking-wider",
+                                isEvil ? "text-red-400" : "text-mystic-gold"
+                            )}>
                                 {t.common.winCondition}
                             </span>
                         </div>
-                        <p className="text-white/80 text-center text-sm">
+                        <p className={cn(
+                            "text-center text-xs leading-relaxed",
+                            team.colors.cardText,
+                            "opacity-70"
+                        )}>
                             {winCondition}
                         </p>
                     </div>
 
+                    {/* Confirmation Button */}
                     <Button
                         onClick={onContinue}
                         fullWidth
                         size="lg"
-                        className={cn("bg-gradient-to-r", team.colors.buttonGradient)}
+                        className={cn(
+                            "bg-gradient-to-r font-tarot uppercase tracking-wider",
+                            team.colors.buttonGradient,
+                            isEvil ? "text-white" : "text-grimoire-dark"
+                        )}
                     >
                         {t.common.iUnderstandMyRole}
                     </Button>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 }

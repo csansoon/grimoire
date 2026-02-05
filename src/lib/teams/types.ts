@@ -7,13 +7,17 @@ export type TeamDefinition = {
     name: string;
     icon: IconName;
     winCondition: string;
+    isEvil: boolean;
     colors: {
-        // Background gradients
+        // For tarot card backgrounds
+        cardBg: string;
+        cardBorder: string;
+        cardText: string;
+        // For general UI
         gradient: string;
         buttonGradient: string;
-        // Text colors
         text: string;
-        // Badge/accent colors
+        accent: string;
         badge: string;
         badgeText: string;
     };
