@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <!-- Radial glow behind the eye -->
+    <radialGradient id="eyeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0.15"/>
+      <stop offset="70%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Background circle - solid purple -->
+  <circle cx="256" cy="256" r="250" fill="#1A0A2E"/>
+  
+  <!-- Glow effect behind eye (simulated with radial gradient) -->
+  <circle cx="256" cy="256" r="230" fill="url(#eyeGlow)"/>
+  
+  <!-- Gold border -->
+  <circle cx="256" cy="256" r="246" fill="none" stroke="#D4AF37" stroke-width="4" stroke-opacity="0.4"/>
+  
+  <!-- Eye icon (Lucide eye, white) -->
+  <g transform="translate(256, 256) scale(15)">
+    <!-- Eye outline path -->
+    <path 
+      d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"
+      fill="none" 
+      stroke="#FFFFFF" 
+      stroke-width="2" 
+      stroke-linecap="round" 
+      stroke-linejoin="round"
+      transform="translate(-12, -12)"
+    />
+    <!-- Eye pupil circle -->
+    <circle cx="0" cy="0" r="3" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+  </g>
+</svg>
