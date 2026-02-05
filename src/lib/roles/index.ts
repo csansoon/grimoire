@@ -1,14 +1,15 @@
 import { RoleDefinition, RoleId } from "./types";
-import Imp from "./definition/imp";
-import Villager from "./definition/villager";
+import Imp from "./definition/Imp";
+import Villager from "./definition/Villager";
 // Trouble Brewing
-import Washerwoman from "./definition/trouble-brewing/washerwoman";
-import Librarian from "./definition/trouble-brewing/librarian";
-import Investigator from "./definition/trouble-brewing/investigator";
-import Chef from "./definition/trouble-brewing/chef";
-import Empath from "./definition/trouble-brewing/empath";
-import Monk from "./definition/trouble-brewing/monk";
-import Soldier from "./definition/trouble-brewing/soldier";
+import Washerwoman from "./definition/trouble-brewing/Washerwoman";
+import Librarian from "./definition/trouble-brewing/Librarian";
+import Investigator from "./definition/trouble-brewing/Investigator";
+import Chef from "./definition/trouble-brewing/Chef";
+import Empath from "./definition/trouble-brewing/Empath";
+import Monk from "./definition/trouble-brewing/Monk";
+import Soldier from "./definition/trouble-brewing/Soldier";
+import FortuneTeller from "./definition/trouble-brewing/FortuneTeller";
 
 export const ROLES: Record<RoleId, RoleDefinition> = {
     imp: Imp,
@@ -20,6 +21,7 @@ export const ROLES: Record<RoleId, RoleDefinition> = {
     empath: Empath,
     monk: Monk,
     soldier: Soldier,
+    fortune_teller: FortuneTeller,
 };
 
 // Scripts define which roles are in each edition
@@ -28,7 +30,18 @@ export type ScriptId = "trouble-brewing";
 export const SCRIPTS: Record<ScriptId, { name: string; roles: RoleId[] }> = {
     "trouble-brewing": {
         name: "Trouble Brewing",
-        roles: ["washerwoman", "librarian", "investigator", "chef", "empath", "monk", "soldier", "villager", "imp"],
+        roles: [
+            "washerwoman",
+            "librarian",
+            "investigator",
+            "chef",
+            "empath",
+            "fortune_teller",
+            "monk",
+            "soldier",
+            "villager",
+            "imp",
+        ],
     },
 };
 

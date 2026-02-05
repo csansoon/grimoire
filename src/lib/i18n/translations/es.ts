@@ -151,6 +151,16 @@ const es: Translations = {
         soldierInfo: "Tu Protección",
         permanentlyProtected: "Estás permanentemente protegido del Demonio.",
 
+        // Fortune Teller specific
+        fortuneTellerInfo: "Tu Visión",
+        selectTwoPlayersToCheck: "Selecciona 2 jugadores para verificar si son Demonios.",
+        selectRedHerring: "Asignar Pista Falsa",
+        redHerringInfo: "Selecciona un jugador bueno que se registrará como Demonio para este Adivino.",
+        selectGoodPlayerAsRedHerring: "Selecciona un jugador bueno como Pista Falsa",
+        selectRandomRedHerring: "Aleatorio",
+        yesOneIsDemon: "SÍ — ¡Uno de ellos es un Demonio!",
+        noNeitherIsDemon: "NO — Ninguno es un Demonio.",
+
         // Handback screen
         handbackToNarrator: "Devolver al Narrador",
         handbackDescription: "Por favor, devuelve el dispositivo al Narrador antes de continuar.",
@@ -236,6 +246,16 @@ const es: Translations = {
             name: "Soldado",
             description: "Estás a salvo del Demonio.",
         },
+        fortune_teller: {
+            name: "Adivino",
+            description:
+                "Cada noche, elige 2 jugadores: descubres si alguno es un Demonio. Hay un jugador bueno que se registra como Demonio para ti.",
+            history: {
+                sawDemon: "{player} revisó a {player1} y {player2} — SÍ, uno es un Demonio (o Pista Falsa)",
+                sawNoDemon: "{player} revisó a {player1} y {player2} — NO, ninguno es un Demonio",
+                redHerringAssigned: "{redHerring} fue asignado como la Pista Falsa para {player}",
+            },
+        },
     },
 
     effects: {
@@ -250,6 +270,11 @@ const es: Translations = {
         safe: {
             name: "A Salvo",
             description: "Este jugador está protegido de la muerte del Demonio.",
+        },
+        red_herring: {
+            name: "Pista Falsa",
+            description:
+                "Este jugador se registra como un Demonio para un Adivino específico.",
         },
     },
 

@@ -10,7 +10,7 @@ import {
     getAlivePlayers,
 } from "./types";
 import { getRole, getNightOrderRoles } from "./roles";
-import { NightActionResult } from "./roles/types";
+import { NightActionResult, EffectToAdd } from "./roles/types";
 
 // ============================================================================
 // GAME CREATION
@@ -97,7 +97,7 @@ export function addHistoryEntry(
     game: Game,
     entry: Omit<HistoryEntry, "id" | "timestamp" | "stateAfter">,
     stateUpdates?: Partial<GameState>,
-    addEffects?: Record<string, { type: string; data?: Record<string, unknown>; expiresAt?: "end_of_night" | "end_of_day" | "never" }[]>,
+    addEffects?: Record<string, EffectToAdd[]>,
     removeEffects?: Record<string, string[]>
 ): Game {
     const currentState = getCurrentState(game);

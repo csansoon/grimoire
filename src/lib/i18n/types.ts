@@ -160,6 +160,16 @@ export type Translations = {
         soldierInfo: string;
         permanentlyProtected: string;
 
+        // Fortune Teller specific
+        fortuneTellerInfo: string;
+        selectTwoPlayersToCheck: string;
+        selectRedHerring: string;
+        redHerringInfo: string;
+        selectGoodPlayerAsRedHerring: string;
+        selectRandomRedHerring: string;
+        yesOneIsDemon: string;
+        noNeitherIsDemon: string;
+
         // Handback screen
         handbackToNarrator: string;
         handbackDescription: string;
@@ -247,6 +257,15 @@ export type Translations = {
             name: string;
             description: string;
         };
+        fortune_teller: {
+            name: string;
+            description: string;
+            history: {
+                sawDemon: string;
+                sawNoDemon: string;
+                redHerringAssigned: string;
+            };
+        };
     };
 
     // Effects
@@ -260,6 +279,10 @@ export type Translations = {
             description: string;
         };
         safe: {
+            name: string;
+            description: string;
+        };
+        red_herring: {
             name: string;
             description: string;
         };

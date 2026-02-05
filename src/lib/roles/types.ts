@@ -3,6 +3,16 @@ import { IconName } from "../../components/atoms/icon";
 import { TeamId } from "../teams";
 
 // ============================================================================
+// EFFECT TYPES
+// ============================================================================
+
+export type EffectToAdd = {
+    type: string;
+    data?: Record<string, unknown>;
+    expiresAt?: "end_of_night" | "end_of_day" | "never";
+};
+
+// ============================================================================
 // NIGHT ACTION PROPS
 // ============================================================================
 
@@ -18,7 +28,7 @@ export type NightActionResult = {
     // Updates to apply to the game state
     stateUpdates?: Partial<GameState>;
     // Effects to add to players (playerId -> effects to add)
-    addEffects?: Record<string, { type: string; data?: Record<string, unknown> }[]>;
+    addEffects?: Record<string, EffectToAdd[]>;
     // Effects to remove from players (playerId -> effect types to remove)
     removeEffects?: Record<string, string[]>;
 };
@@ -36,7 +46,7 @@ export type RoleRevealProps = {
 // ROLE DEFINITION
 // ============================================================================
 
-export type RoleId = "villager" | "imp" | "washerwoman" | "librarian" | "investigator" | "chef" | "empath" | "monk" | "soldier";
+export type RoleId = "villager" | "imp" | "washerwoman" | "librarian" | "investigator" | "chef" | "empath" | "monk" | "soldier" | "fortune_teller";
 
 export type RoleDefinition = {
     id: RoleId;
