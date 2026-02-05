@@ -5,6 +5,8 @@ import Villager from "./definition/villager";
 import Washerwoman from "./definition/trouble-brewing/washerwoman";
 import Librarian from "./definition/trouble-brewing/librarian";
 import Investigator from "./definition/trouble-brewing/investigator";
+import Chef from "./definition/trouble-brewing/chef";
+import Empath from "./definition/trouble-brewing/empath";
 
 export const ROLES: Record<RoleId, RoleDefinition> = {
     imp: Imp,
@@ -12,6 +14,8 @@ export const ROLES: Record<RoleId, RoleDefinition> = {
     washerwoman: Washerwoman,
     librarian: Librarian,
     investigator: Investigator,
+    chef: Chef,
+    empath: Empath,
 };
 
 // Scripts define which roles are in each edition
@@ -20,7 +24,7 @@ export type ScriptId = "trouble-brewing";
 export const SCRIPTS: Record<ScriptId, { name: string; roles: RoleId[] }> = {
     "trouble-brewing": {
         name: "Trouble Brewing",
-        roles: ["washerwoman", "librarian", "investigator", "villager", "imp"],
+        roles: ["washerwoman", "librarian", "investigator", "chef", "empath", "villager", "imp"],
     },
 };
 

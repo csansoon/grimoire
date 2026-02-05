@@ -141,6 +141,18 @@ const en: Translations = {
         oneOfTheseIsTheMinion:
             "One of these players is a Minion. Remember who they are!",
 
+        // Chef specific
+        chefInfo: "Your Information",
+        evilPairsCount: "Evil pairs sitting together:",
+        evilPairsExplanation:
+            "This is the number of pairs of evil players who are sitting next to each other.",
+
+        // Empath specific
+        empathInfo: "Your Information",
+        evilNeighborsCount: "Evil neighbors:",
+        evilNeighborsExplanation:
+            "This is how many of your alive neighbors are evil.",
+
         // Handback screen
         handbackToNarrator: "Hand back to Narrator",
         handbackDescription:
@@ -210,6 +222,22 @@ const en: Translations = {
             history: {
                 discoveredMinion:
                     "{player} discovered that either {player1} or {player2} is the {role}",
+            },
+        },
+        chef: {
+            name: "Chef",
+            description:
+                "You start knowing how many pairs of evil players there are.",
+            history: {
+                sawEvilPairs: "{player} learned there are {count} pairs of evil players sitting together",
+            },
+        },
+        empath: {
+            name: "Empath",
+            description:
+                "Each night, you learn how many of your 2 alive neighbours are evil.",
+            history: {
+                sawEvilNeighbors: "{player} learned that {count} of their neighbors are evil",
             },
         },
     },

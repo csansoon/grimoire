@@ -141,6 +141,16 @@ export type Translations = {
         investigatorInfo: string;
         oneOfTheseIsTheMinion: string;
 
+        // Chef specific
+        chefInfo: string;
+        evilPairsCount: string;
+        evilPairsExplanation: string;
+
+        // Empath specific
+        empathInfo: string;
+        evilNeighborsCount: string;
+        evilNeighborsExplanation: string;
+
         // Handback screen
         handbackToNarrator: string;
         handbackDescription: string;
@@ -200,6 +210,20 @@ export type Translations = {
             description: string;
             history: {
                 discoveredMinion: string;
+            };
+        };
+        chef: {
+            name: string;
+            description: string;
+            history: {
+                sawEvilPairs: string;
+            };
+        };
+        empath: {
+            name: string;
+            description: string;
+            history: {
+                sawEvilNeighbors: string;
             };
         };
     };

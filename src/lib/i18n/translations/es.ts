@@ -130,6 +130,18 @@ const es: Translations = {
         investigatorInfo: "Tu Información",
         oneOfTheseIsTheMinion: "Uno de estos jugadores es un Secuaz. ¡Recuerda quiénes son!",
 
+        // Chef specific
+        chefInfo: "Tu Información",
+        evilPairsCount: "Parejas malvadas sentadas juntas:",
+        evilPairsExplanation:
+            "Este es el número de parejas de jugadores malvados que están sentados uno al lado del otro.",
+
+        // Empath specific
+        empathInfo: "Tu Información",
+        evilNeighborsCount: "Vecinos malvados:",
+        evilNeighborsExplanation:
+            "Este es cuántos de tus vecinos vivos son malvados.",
+
         // Handback screen
         handbackToNarrator: "Devolver al Narrador",
         handbackDescription: "Por favor, devuelve el dispositivo al Narrador antes de continuar.",
@@ -187,6 +199,20 @@ const es: Translations = {
             description: "Empiezas sabiendo que 1 de 2 jugadores es un Secuaz en particular.",
             history: {
                 discoveredMinion: "{player} descubrió que {player1} o {player2} es el/la {role}",
+            },
+        },
+        chef: {
+            name: "Chef",
+            description: "Empiezas sabiendo cuántas parejas de jugadores malvados hay.",
+            history: {
+                sawEvilPairs: "{player} descubrió que hay {count} parejas de jugadores malvados sentados juntos",
+            },
+        },
+        empath: {
+            name: "Empático",
+            description: "Cada noche, descubres cuántos de tus 2 vecinos vivos son malvados.",
+            history: {
+                sawEvilNeighbors: "{player} descubrió que {count} de sus vecinos son malvados",
             },
         },
     },

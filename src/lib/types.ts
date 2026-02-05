@@ -143,3 +143,43 @@ export function getAlivePlayers(state: GameState): PlayerState[] {
 export function getDeadPlayers(state: GameState): PlayerState[] {
     return state.players.filter((p) => !isAlive(p));
 }
+
+/**
+ * Get the alive neighbors of a player in circular seating order.
+ * Dead players are skipped, and the next alive player in each direction is returned.
+ * @returns [leftNeighbor, rightNeighbor] - can be the same player if only 2 alive
+ */
+export function getAliveNeighbors(
+    state: GameState,
+    playerId: string
+): [PlayerState | null, PlayerState | null] {
+    const playerIndex = state.players.findIndex((p) => p.id === playerId);
+    if (playerIndex === -1) return [null, null];
+
+    const alivePlayers = getAlivePlayers(state);
+    if (alivePlayers.length <= 1) return [null, null];
+
+    // Find left neighbor (going backwards in array, wrapping around)
+    let leftNeighbor: PlayerState | null = null;
+    for (let i = 1; i < state.players.length; i++) {
+        const idx = (playerIndex - i + state.players.length) % state.players.length;
+        const candidate = state.players[idx];
+        if (isAlive(candidate) && candidate.id !== playerId) {
+            leftNeighbor = candidate;
+            break;
+        }
+    }
+
+    // Find right neighbor (going forwards in array, wrapping around)
+    let rightNeighbor: PlayerState | null = null;
+    for (let i = 1; i < state.players.length; i++) {
+        const idx = (playerIndex + i) % state.players.length;
+        const candidate = state.players[idx];
+        if (isAlive(candidate) && candidate.id !== playerId) {
+            rightNeighbor = candidate;
+            break;
+        }
+    }
+
+    return [leftNeighbor, rightNeighbor];
+}
