@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/grimoire/',
   plugins: [
     react(),
     VitePWA({
@@ -14,6 +15,10 @@ export default defineConfig({
         short_name: 'Grimoire',
         description: 'Grimoire PWA',
         theme_color: '#ffffff',
+        background_color: '#ffffff',
+        display: 'standalone',
+        scope: '/grimoire/',
+        start_url: '/grimoire/',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -24,6 +29,12 @@ export default defineConfig({
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       }
