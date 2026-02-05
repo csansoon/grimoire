@@ -2,6 +2,7 @@ import { GameState, PlayerState } from "../../lib/types";
 import { useI18n } from "../../lib/i18n";
 import { Button, Icon } from "../atoms";
 import { Grimoire } from "../items/Grimoire";
+import { MysticDivider } from "../items";
 
 type Props = {
     state: GameState;
@@ -59,9 +60,7 @@ export function DayPhase({ state, onNominate, onEndDay, onMainMenu, onShowRoleCa
                 </div>
 
                 {/* Divider */}
-                <div className="divider-mystic mb-6">
-                    <Icon name="sparkles" size="sm" className="text-mystic-gold/40" />
-                </div>
+                <MysticDivider className="mb-6" />
 
                 {/* Daytime Actions */}
                 <div>

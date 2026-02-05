@@ -1,6 +1,7 @@
 import { getGameSummaries, getCurrentGameId, GameSummary } from "../../lib/storage";
 import { useI18n } from "../../lib/i18n";
 import { Icon } from "../atoms";
+import { MysticDivider } from "../items";
 
 type Props = {
     onNewGame: () => void;
@@ -53,9 +54,7 @@ export function MainMenu({ onNewGame, onContinue, onLoadGame }: Props) {
                     </p>
                     
                     {/* Decorative divider */}
-                    <div className="divider-mystic mt-6">
-                        <Icon name="sparkles" size="sm" className="text-mystic-gold/40" />
-                    </div>
+                    <MysticDivider className="mt-6" />
                 </div>
 
                 {/* Main Actions */}

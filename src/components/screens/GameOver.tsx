@@ -2,6 +2,7 @@ import { GameState, hasEffect } from "../../lib/types";
 import { getRole } from "../../lib/roles";
 import { useI18n } from "../../lib/i18n";
 import { Button, Badge, Icon } from "../atoms";
+import { MysticDivider } from "../items";
 import { cn } from "../../lib/utils";
 
 type Props = {
@@ -64,13 +65,11 @@ export function GameOver({ state, onMainMenu, onShowHistory }: Props) {
                     </p>
 
                     {/* Divider */}
-                    <div className="divider-mystic mb-6">
-                        <Icon
-                            name={isGoodWin ? "sparkles" : "skull"}
-                            size="sm"
-                            className={isGoodWin ? "text-mystic-gold/40" : "text-red-500/40"}
-                        />
-                    </div>
+                    <MysticDivider
+                        icon={isGoodWin ? "sparkles" : "skull"}
+                        iconClassName={isGoodWin ? "text-mystic-gold/40" : "text-red-500/40"}
+                        className="mb-6"
+                    />
 
                     {/* Final Roles */}
                     <div className="max-w-sm mx-auto">

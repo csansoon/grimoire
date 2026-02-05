@@ -1,5 +1,6 @@
 import { useI18n } from "../../lib/i18n";
 import { Button, Icon } from "../atoms";
+import { MysticDivider } from "../items";
 
 type Props = {
     onContinue: () => void;
@@ -29,9 +30,7 @@ export function HandbackScreen({ onContinue }: Props) {
                 </p>
 
                 {/* Divider */}
-                <div className="divider-mystic mb-10">
-                    <Icon name="sparkles" size="sm" className="text-mystic-gold/40" />
-                </div>
+                <MysticDivider className="mb-10" />
 
                 {/* Button */}
                 <Button

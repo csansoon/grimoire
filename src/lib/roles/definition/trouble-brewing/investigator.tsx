@@ -3,9 +3,16 @@ import { RoleDefinition } from "../../types";
 import { getRole } from "../../index";
 import { useI18n } from "../../../i18n";
 import { RoleCard } from "../../../../components/items/RoleCard";
-import { NightActionLayout } from "../../../../components/layouts/NightActionLayout";
-import { Button, Icon, Badge } from "../../../../components/atoms";
-import { cn } from "../../../utils";
+import { NightActionLayout, NarratorSetupLayout } from "../../../../components/layouts";
+import {
+    StepSection,
+    AlertBox,
+    PlayerNameCard,
+    RoleRevealBadge,
+    MysticDivider,
+} from "../../../../components/items";
+import { SelectablePlayerItem, SelectableRoleItem } from "../../../../components/inputs";
+import { Button, Icon } from "../../../../components/atoms";
 
 type Phase = "narrator_setup" | "player_view";
 
@@ -13,7 +20,7 @@ const definition: RoleDefinition = {
     id: "investigator",
     team: "townsfolk",
     icon: "search",
-    nightOrder: 12, // Wakes after Librarian
+    nightOrder: 12,
     firstNightOnly: true,
 
     RoleReveal: ({ player, onContinue }) => (
@@ -26,10 +33,8 @@ const definition: RoleDefinition = {
         const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
         const [selectedMinion, setSelectedMinion] = useState<string | null>(null);
 
-        // Get all other players
         const otherPlayers = state.players.filter((p) => p.id !== player.id);
 
-        // Get minions among selected players
         const minionsInSelection = selectedPlayers.filter((playerId) => {
             const p = state.players.find((pl) => pl.id === playerId);
             if (!p) return false;
@@ -45,7 +50,6 @@ const definition: RoleDefinition = {
         const handlePlayerToggle = (playerId: string) => {
             setSelectedPlayers((prev) => {
                 if (prev.includes(playerId)) {
-                    // If removing the selected minion, clear it
                     if (playerId === selectedMinion) {
                         setSelectedMinion(null);
                     }
@@ -113,167 +117,64 @@ const definition: RoleDefinition = {
         // Narrator Setup Phase
         if (phase === "narrator_setup") {
             return (
-                <div className="min-h-app bg-gradient-to-b from-indigo-950 via-grimoire-purple to-grimoire-darker flex flex-col">
-                    {/* Header */}
-                    <div className="bg-gradient-to-b from-blue-900/50 to-transparent px-4 py-6 text-center">
-                        <div className="flex justify-center mb-3">
-                            <div className="w-16 h-16 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center">
-                                <Icon name="search" size="2xl" className="text-blue-300" />
-                            </div>
-                        </div>
-                        <h1 className="font-tarot text-xl text-parchment-100 tracking-wider uppercase">
-                            {t.game.narratorSetup}
-                        </h1>
-                        <p className="text-parchment-400 text-sm mt-1">
-                            {getRoleName("investigator")} - {getPlayerName(player.id)}
-                        </p>
-                    </div>
+                <NarratorSetupLayout
+                    icon="search"
+                    roleName={getRoleName("investigator")}
+                    playerName={getPlayerName(player.id)}
+                    onShowToPlayer={handleShowToPlayer}
+                    showToPlayerDisabled={!canProceedToPlayer}
+                >
+                    <StepSection
+                        step={1}
+                        label={t.game.selectTwoPlayers}
+                        count={{ current: selectedPlayers.length, max: 2 }}
+                    >
+                        {otherPlayers.map((p) => {
+                            const role = getRole(p.roleId);
+                            const isSelected = selectedPlayers.includes(p.id);
+                            const isMinion = role?.team === "minion";
 
-                    {/* Content */}
-                    <div className="flex-1 px-4 pb-4 max-w-lg mx-auto w-full overflow-y-auto">
-                        {/* Step 1: Select 2 players */}
-                        <div className="mb-6">
-                            <div className="flex items-center gap-2 mb-3">
-                                <span className="w-6 h-6 rounded-full bg-blue-500/30 text-blue-300 text-xs flex items-center justify-center font-bold">
-                                    1
-                                </span>
-                                <span className="text-parchment-300 text-sm">
-                                    {t.game.selectTwoPlayers}
-                                </span>
-                                <span className="text-parchment-500 text-xs">
-                                    ({selectedPlayers.length}/2)
-                                </span>
-                            </div>
-                            <div className="space-y-2">
-                                {otherPlayers.map((p) => {
-                                    const role = getRole(p.roleId);
-                                    const isSelected = selectedPlayers.includes(p.id);
-                                    const isMinion = role?.team === "minion";
+                            return (
+                                <SelectablePlayerItem
+                                    key={p.id}
+                                    playerName={p.name}
+                                    roleName={getRoleName(p.roleId)}
+                                    roleIcon={role?.icon ?? "user"}
+                                    isSelected={isSelected}
+                                    isDisabled={!isSelected && selectedPlayers.length >= 2}
+                                    highlightTeam={isMinion ? "minion" : undefined}
+                                    teamLabel={isMinion ? t.teams.minion.name : undefined}
+                                    onClick={() => handlePlayerToggle(p.id)}
+                                />
+                            );
+                        })}
+                    </StepSection>
 
-                                    return (
-                                        <button
-                                            key={p.id}
-                                            onClick={() => handlePlayerToggle(p.id)}
-                                            disabled={!isSelected && selectedPlayers.length >= 2}
-                                            className={cn(
-                                                "w-full p-3 rounded-lg border flex items-center justify-between transition-all",
-                                                isSelected
-                                                    ? "bg-blue-900/40 border-blue-500/50"
-                                                    : selectedPlayers.length >= 2
-                                                        ? "bg-white/5 border-white/10 opacity-50"
-                                                        : "bg-white/5 border-white/10 hover:bg-white/10"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <Icon
-                                                    name={role?.icon ?? "user"}
-                                                    size="md"
-                                                    className={isSelected ? "text-blue-300" : "text-parchment-400"}
-                                                />
-                                                <div className="text-left">
-                                                    <div className="text-parchment-100 font-medium">
-                                                        {p.name}
-                                                    </div>
-                                                    <div className="text-xs text-parchment-500 flex items-center gap-1">
-                                                        {getRoleName(p.roleId)}
-                                                        {isMinion && (
-                                                            <Badge variant="minion" className="text-[10px] px-1 py-0">
-                                                                {t.teams.minion.name}
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {isSelected && (
-                                                <Icon name="check" size="md" className="text-blue-300" />
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                    {selectedPlayers.length === 2 && minionsInSelection.length > 0 && (
+                        <StepSection step={2} label={t.game.selectWhichRoleToShow}>
+                            {minionsInSelection.map((playerId) => {
+                                const p = state.players.find((pl) => pl.id === playerId);
+                                if (!p) return null;
+                                const role = getRole(p.roleId);
 
-                        {/* Step 2: Select which minion's role to show */}
-                        {selectedPlayers.length === 2 && minionsInSelection.length > 0 && (
-                            <div className="mb-6">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <span className="w-6 h-6 rounded-full bg-blue-500/30 text-blue-300 text-xs flex items-center justify-center font-bold">
-                                        2
-                                    </span>
-                                    <span className="text-parchment-300 text-sm">
-                                        {t.game.selectWhichRoleToShow}
-                                    </span>
-                                </div>
-                                <div className="space-y-2">
-                                    {minionsInSelection.map((playerId) => {
-                                        const p = state.players.find((pl) => pl.id === playerId);
-                                        if (!p) return null;
-                                        const role = getRole(p.roleId);
-                                        const isSelected = selectedMinion === playerId;
+                                return (
+                                    <SelectableRoleItem
+                                        key={playerId}
+                                        playerName={p.name}
+                                        roleName={getRoleName(p.roleId)}
+                                        roleIcon={role?.icon ?? "user"}
+                                        isSelected={selectedMinion === playerId}
+                                        onClick={() => setSelectedMinion(playerId)}
+                                    />
+                                );
+                            })}
+                        </StepSection>
+                    )}
 
-                                        return (
-                                            <button
-                                                key={playerId}
-                                                onClick={() => setSelectedMinion(playerId)}
-                                                className={cn(
-                                                    "w-full p-3 rounded-lg border flex items-center justify-between transition-all",
-                                                    isSelected
-                                                        ? "bg-mystic-gold/20 border-mystic-gold/50"
-                                                        : "bg-white/5 border-white/10 hover:bg-white/10"
-                                                )}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <Icon
-                                                        name={role?.icon ?? "user"}
-                                                        size="md"
-                                                        className={isSelected ? "text-mystic-gold" : "text-parchment-400"}
-                                                    />
-                                                    <div className="text-left">
-                                                        <div className="text-parchment-100 font-medium">
-                                                            {p.name}
-                                                        </div>
-                                                        <div className="text-xs text-mystic-gold">
-                                                            {getRoleName(p.roleId)}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                {isSelected && (
-                                                    <Icon name="check" size="md" className="text-mystic-gold" />
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Warning if no minion selected */}
-                        {selectedPlayers.length === 2 && minionsInSelection.length === 0 && (
-                            <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-4 mb-6">
-                                <div className="flex items-center gap-2 text-red-300">
-                                    <Icon name="alertTriangle" size="md" />
-                                    <span className="text-sm">{t.game.mustIncludeMinion}</span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="sticky bottom-0 bg-grimoire-dark/95 backdrop-blur-sm border-t border-blue-500/30 px-4 py-4">
-                        <div className="max-w-lg mx-auto">
-                            <Button
-                                onClick={handleShowToPlayer}
-                                disabled={!canProceedToPlayer}
-                                fullWidth
-                                size="lg"
-                                className="bg-gradient-to-r from-blue-600 to-indigo-700 font-tarot uppercase tracking-wider"
-                            >
-                                <Icon name="eye" size="md" className="mr-2" />
-                                {t.game.showToPlayer}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+                    {selectedPlayers.length === 2 && minionsInSelection.length === 0 && (
+                        <AlertBox message={t.game.mustIncludeMinion} />
+                    )}
+                </NarratorSetupLayout>
             );
         }
 
@@ -289,47 +190,20 @@ const definition: RoleDefinition = {
                 title={t.game.investigatorInfo}
                 description={t.game.oneOfTheseIsTheMinion}
             >
-                {/* The two players */}
                 <div className="space-y-3 mb-6">
-                    {[player1, player2].map((p) => {
-                        if (!p) return null;
-                        return (
-                            <div
-                                key={p.id}
-                                className="p-4 rounded-lg bg-white/5 border border-white/10"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center">
-                                        <Icon name="user" size="md" className="text-blue-300" />
-                                    </div>
-                                    <span className="text-parchment-100 font-medium text-lg">
-                                        {p.name}
-                                    </span>
-                                </div>
-                            </div>
-                        );
-                    })}
+                    {player1 && <PlayerNameCard name={player1.name} />}
+                    {player2 && <PlayerNameCard name={player2.name} />}
                 </div>
 
-                {/* Divider */}
-                <div className="divider-mystic mb-6">
-                    <Icon name="sparkles" size="sm" className="text-mystic-gold/40" />
-                </div>
+                <MysticDivider />
 
-                {/* The role one of them has */}
-                <div className="text-center mb-6">
-                    <p className="text-parchment-400 text-sm mb-3">
-                        {t.game.oneOfThemIsThe}
-                    </p>
-                    {minionRole && (
-                        <div className="inline-flex items-center gap-3 px-6 py-4 rounded-xl bg-mystic-gold/10 border border-mystic-gold/30">
-                            <Icon name={minionRole.icon} size="xl" className="text-mystic-gold" />
-                            <span className="font-tarot text-2xl text-mystic-gold uppercase tracking-wider">
-                                {getRoleName(minionRole.id)}
-                            </span>
-                        </div>
-                    )}
-                </div>
+                {minionRole && (
+                    <RoleRevealBadge
+                        icon={minionRole.icon}
+                        roleName={getRoleName(minionRole.id)}
+                        label={t.game.oneOfThemIsThe}
+                    />
+                )}
 
                 <Button
                     onClick={handleComplete}

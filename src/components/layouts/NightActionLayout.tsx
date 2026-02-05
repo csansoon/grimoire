@@ -3,6 +3,7 @@ import { getRole } from "../../lib/roles";
 import { getTeam } from "../../lib/teams";
 import { useI18n } from "../../lib/i18n";
 import { Icon } from "../atoms";
+import { MysticDivider } from "../items";
 import { cn } from "../../lib/utils";
 
 type Props = {
@@ -66,13 +67,11 @@ export function NightActionLayout({ player, title, description, children }: Prop
 
                 {(title || description) && (
                     <div className="mt-6 max-w-sm mx-auto">
-                        <div className="divider-mystic mb-4">
-                            <Icon
-                                name={isEvil ? "skull" : "moon"}
-                                size="sm"
-                                className={isEvil ? "text-red-500/40" : "text-indigo-400/40"}
-                            />
-                        </div>
+                        <MysticDivider
+                            icon={isEvil ? "skull" : "moon"}
+                            iconClassName={isEvil ? "text-red-500/40" : "text-indigo-400/40"}
+                            className="mb-4"
+                        />
                         {title && (
                             <p className="text-parchment-100 font-medium mb-1">{title}</p>
                         )}

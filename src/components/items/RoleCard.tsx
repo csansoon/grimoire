@@ -3,6 +3,7 @@ import { getRole } from "../../lib/roles";
 import { getTeam, TeamId } from "../../lib/teams";
 import { useI18n } from "../../lib/i18n";
 import { Button, Icon } from "../atoms";
+import { MysticDivider } from "../items";
 import { cn } from "../../lib/utils";
 
 type Props = {
@@ -114,13 +115,10 @@ export function RoleCard({ player, onContinue }: Props) {
                     </p>
 
                     {/* Divider */}
-                    <div className="divider-mystic">
-                        <Icon 
-                            name={isEvil ? "skull" : "sparkles"} 
-                            size="sm" 
-                            className={isEvil ? "text-red-500/50" : "text-mystic-gold/50"} 
-                        />
-                    </div>
+                    <MysticDivider
+                        icon={isEvil ? "skull" : "sparkles"}
+                        iconClassName={isEvil ? "text-red-500/50" : "text-mystic-gold/50"}
+                    />
 
                     {/* Description */}
                     <p className={cn(

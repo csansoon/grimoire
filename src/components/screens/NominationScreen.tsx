@@ -2,6 +2,7 @@ import { useState } from "react";
 import { GameState, getAlivePlayers } from "../../lib/types";
 import { useI18n } from "../../lib/i18n";
 import { Button, Icon } from "../atoms";
+import { MysticDivider } from "../items";
 
 type Props = {
     state: GameState;
@@ -73,9 +74,7 @@ export function NominationScreen({ state, onNominate, onBack }: Props) {
                 </div>
 
                 {/* Divider */}
-                <div className="divider-mystic mb-6">
-                    <Icon name="swords" size="sm" className="text-red-500/50" />
-                </div>
+                <MysticDivider icon="swords" iconClassName="text-red-500/50" className="mb-6" />
 
                 {/* Nominee Selection */}
                 <div className="mb-6">

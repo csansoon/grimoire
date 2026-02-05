@@ -2,6 +2,7 @@ import { PlayerState } from "../../lib/types";
 import { getRole } from "../../lib/roles";
 import { useI18n, interpolate } from "../../lib/i18n";
 import { Button, Icon } from "../atoms";
+import { MysticDivider } from "../items";
 
 type Props = {
     player: PlayerState;
@@ -57,9 +58,7 @@ export function NarratorPrompt({ player, action, onProceed, onMainMenu }: Props)
                 </p>
 
                 {/* Decorative divider */}
-                <div className="divider-mystic mb-8">
-                    <Icon name="sparkles" size="sm" className="text-mystic-gold/40" />
-                </div>
+                <MysticDivider className="mb-8" />
 
                 {/* Button */}
                 <Button

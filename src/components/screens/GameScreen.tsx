@@ -24,6 +24,7 @@ import { GameOver } from "./GameOver";
 import { HistoryView } from "./HistoryView";
 import { HandbackScreen } from "./HandbackScreen";
 import { GrimoireModal } from "../items/GrimoireModal";
+import { MysticDivider } from "../items";
 import { Button, Icon, LanguageToggle } from "../atoms";
 import { NightActionResult } from "../../lib/roles/types";
 
@@ -343,9 +344,7 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                                     {t.game.nightActionsResolved}
                                 </p>
 
-                                <div className="divider-mystic mb-8">
-                                    <Icon name="sparkles" size="sm" className="text-indigo-400/40" />
-                                </div>
+                                <MysticDivider className="mb-8" iconClassName="text-indigo-400/40" />
 
                                 <Button
                                     onClick={handleStartDay}
