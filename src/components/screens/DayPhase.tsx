@@ -6,13 +6,14 @@ import { MysticDivider } from "../items";
 
 type Props = {
     state: GameState;
+    canNominate: boolean;
     onNominate: () => void;
     onEndDay: () => void;
     onMainMenu: () => void;
     onShowRoleCard?: (player: PlayerState) => void;
 };
 
-export function DayPhase({ state, onNominate, onEndDay, onMainMenu, onShowRoleCard }: Props) {
+export function DayPhase({ state, canNominate, onNominate, onEndDay, onMainMenu, onShowRoleCard }: Props) {
     const { t } = useI18n();
 
     return (
@@ -74,20 +75,31 @@ export function DayPhase({ state, onNominate, onEndDay, onMainMenu, onShowRoleCa
                         {/* Nomination Button */}
                         <button
                             onClick={onNominate}
-                            className="w-full flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-red-900/30 to-red-800/20 border border-red-500/30 hover:border-red-500/50 transition-colors group"
+                            disabled={!canNominate}
+                            className={`w-full flex items-center gap-4 p-4 rounded-xl transition-colors group ${
+                                canNominate
+                                    ? "bg-gradient-to-r from-red-900/30 to-red-800/20 border border-red-500/30 hover:border-red-500/50"
+                                    : "bg-gray-900/30 border border-gray-500/20 opacity-50 cursor-not-allowed"
+                            }`}
                         >
-                            <div className="w-12 h-12 rounded-full bg-red-900/40 border border-red-500/40 flex items-center justify-center group-hover:scale-105 transition-transform">
-                                <Icon name="userX" size="lg" className="text-red-400" />
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-transform ${
+                                canNominate
+                                    ? "bg-red-900/40 border border-red-500/40 group-hover:scale-105"
+                                    : "bg-gray-900/40 border border-gray-500/30"
+                            }`}>
+                                <Icon name="userX" size="lg" className={canNominate ? "text-red-400" : "text-gray-500"} />
                             </div>
                             <div className="flex-1 text-left">
-                                <div className="font-tarot text-parchment-100 tracking-wider uppercase">
+                                <div className={`font-tarot tracking-wider uppercase ${canNominate ? "text-parchment-100" : "text-parchment-500"}`}>
                                     {t.game.newNomination}
                                 </div>
                                 <p className="text-parchment-500 text-xs mt-0.5">
-                                    {t.game.accusePlayerDescription}
+                                    {canNominate ? t.game.accusePlayerDescription : t.game.executionAlreadyHappened}
                                 </p>
                             </div>
-                            <Icon name="arrowRight" size="md" className="text-parchment-500 group-hover:text-parchment-300 transition-colors" />
+                            {canNominate && (
+                                <Icon name="arrowRight" size="md" className="text-parchment-500 group-hover:text-parchment-300 transition-colors" />
+                            )}
                         </button>
 
                         {/* More actions can be added here in the future */}

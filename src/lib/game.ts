@@ -247,6 +247,23 @@ function findLastEventIndex(game: Game, eventType: string): number {
     return -1;
 }
 
+/**
+ * Check if an execution has already happened today.
+ * This includes regular executions from voting and virgin-triggered executions.
+ */
+export function hasExecutionToday(game: Game): boolean {
+    const dayStartIndex = findLastEventIndex(game, "day_started");
+    if (dayStartIndex === -1) return false;
+
+    for (let i = dayStartIndex + 1; i < game.history.length; i++) {
+        const entry = game.history[i];
+        if (entry.type === "execution" || entry.type === "virgin_execution") {
+            return true;
+        }
+    }
+    return false;
+}
+
 // ============================================================================
 // PHASE TRANSITIONS
 // ============================================================================

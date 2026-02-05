@@ -79,6 +79,7 @@ export type Translations = {
         grimoire: string;
         daytimeActions: string;
         accusePlayerDescription: string;
+        executionAlreadyHappened: string;
         nominatesForExecution: string;
 
         // Day

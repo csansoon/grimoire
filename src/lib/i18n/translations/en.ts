@@ -75,6 +75,7 @@ const en: Translations = {
         grimoire: "Grimoire",
         daytimeActions: "Daytime Actions",
         accusePlayerDescription: "Accuse a player and put them to vote",
+        executionAlreadyHappened: "An execution has already happened today",
         nominatesForExecution: "{nominator} nominates {nominee} for execution",
 
         day: "Day",

@@ -72,6 +72,7 @@ const es: Translations = {
         grimoire: "Grimoire",
         daytimeActions: "Acciones de Día",
         accusePlayerDescription: "Acusa a un jugador y ponlo a votación",
+        executionAlreadyHappened: "Ya ha habido una ejecución hoy",
         nominatesForExecution: "{nominator} nomina a {nominee} para ejecución",
 
         day: "Día",

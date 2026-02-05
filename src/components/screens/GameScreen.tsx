@@ -13,6 +13,7 @@ import {
     resolveVote,
     endGame,
     checkWinCondition,
+    hasExecutionToday,
 } from "../../lib/game";
 import { saveGame } from "../../lib/storage";
 import { useI18n, interpolate } from "../../lib/i18n";
@@ -385,6 +386,7 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                 return (
                     <DayPhase
                         state={state}
+                        canNominate={!hasExecutionToday(game)}
                         onNominate={handleOpenNomination}
                         onEndDay={handleEndDay}
                         onMainMenu={onMainMenu}
