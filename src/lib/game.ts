@@ -27,12 +27,26 @@ export function createGame(
 ): Game {
     const gameId = generateId();
 
-    const playerStates: PlayerState[] = players.map((p) => ({
-        id: generateId(),
-        name: p.name,
-        roleId: p.roleId,
-        effects: [],
-    }));
+    const playerStates: PlayerState[] = players.map((p) => {
+        const effects: PlayerState["effects"] = [];
+
+        // Soldier gets permanent Safe effect at game start
+        if (p.roleId === "soldier") {
+            effects.push({
+                id: generateId(),
+                type: "safe",
+                data: { source: "soldier", permanent: true },
+                expiresAt: "never",
+            });
+        }
+
+        return {
+            id: generateId(),
+            name: p.name,
+            roleId: p.roleId,
+            effects,
+        };
+    });
 
     const initialState: GameState = {
         phase: "setup",
@@ -64,11 +78,26 @@ export function createGame(
 // HISTORY MANAGEMENT
 // ============================================================================
 
+function expireEffects(
+    state: GameState,
+    expirationType: "end_of_night" | "end_of_day"
+): GameState {
+    return {
+        ...state,
+        players: state.players.map((player) => ({
+            ...player,
+            effects: player.effects.filter(
+                (e) => e.expiresAt !== expirationType
+            ),
+        })),
+    };
+}
+
 export function addHistoryEntry(
     game: Game,
     entry: Omit<HistoryEntry, "id" | "timestamp" | "stateAfter">,
     stateUpdates?: Partial<GameState>,
-    addEffects?: Record<string, { type: string; data?: Record<string, unknown> }[]>,
+    addEffects?: Record<string, { type: string; data?: Record<string, unknown>; expiresAt?: "end_of_night" | "end_of_day" | "never" }[]>,
     removeEffects?: Record<string, string[]>
 ): Game {
     const currentState = getCurrentState(game);
@@ -96,6 +125,7 @@ export function addHistoryEntry(
                         id: generateId(),
                         type: e.type,
                         data: e.data,
+                        expiresAt: e.expiresAt,
                     }));
                     effects = [...effects, ...newEffects];
                 }
@@ -287,7 +317,10 @@ export function startDay(game: Game): Game {
         }
     }
 
-    // Transition to day
+    // Expire effects that should end at end of night (e.g., Monk's protection)
+    const stateAfterExpiration = expireEffects(getCurrentState(updatedGame), "end_of_night");
+
+    // Transition to day with expired effects applied
     return addHistoryEntry(
         updatedGame,
         {
@@ -297,7 +330,7 @@ export function startDay(game: Game): Game {
             ],
             data: { round: currentState.round },
         },
-        { phase: "day" }
+        { phase: "day", players: stateAfterExpiration.players }
     );
 }
 

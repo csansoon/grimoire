@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { RoleDefinition } from "../types";
-import { isAlive } from "../../types";
+import { isAlive, hasEffect } from "../../types";
 import { useI18n } from "../../i18n";
 import { RoleCard } from "../../../components/items/RoleCard";
 import { NightActionLayout } from "../../../components/layouts/NightActionLayout";
@@ -32,32 +32,65 @@ const definition: RoleDefinition = {
             const target = state.players.find((p) => p.id === selectedTarget);
             if (!target) return;
 
-            onComplete({
-                entries: [
-                    {
-                        type: "night_action",
-                        message: [
-                            {
-                                type: "i18n",
-                                key: "roles.imp.history.choseToKill",
-                                params: {
-                                    player: player.id,
-                                    target: target.id,
+            // Check if the target has the Safe effect (protected by Monk or Soldier)
+            const targetIsSafe = hasEffect(target, "safe");
+
+            if (targetIsSafe) {
+                // Kill fails - target is protected
+                // Safe effects expire naturally (Monk's at end of night, Soldier's never)
+                onComplete({
+                    entries: [
+                        {
+                            type: "night_action",
+                            message: [
+                                {
+                                    type: "i18n",
+                                    key: "roles.imp.history.failedToKill",
+                                    params: {
+                                        player: player.id,
+                                        target: target.id,
+                                    },
                                 },
+                            ],
+                            data: {
+                                roleId: "imp",
+                                playerId: player.id,
+                                action: "kill_failed",
+                                targetId: target.id,
+                                reason: "safe",
                             },
-                        ],
-                        data: {
-                            roleId: "imp",
-                            playerId: player.id,
-                            action: "kill",
-                            targetId: target.id,
                         },
+                    ],
+                });
+            } else {
+                // Kill succeeds
+                onComplete({
+                    entries: [
+                        {
+                            type: "night_action",
+                            message: [
+                                {
+                                    type: "i18n",
+                                    key: "roles.imp.history.choseToKill",
+                                    params: {
+                                        player: player.id,
+                                        target: target.id,
+                                    },
+                                },
+                            ],
+                            data: {
+                                roleId: "imp",
+                                playerId: player.id,
+                                action: "kill",
+                                targetId: target.id,
+                            },
+                        },
+                    ],
+                    addEffects: {
+                        [target.id]: [{ type: "dead", data: { cause: "imp" } }],
                     },
-                ],
-                addEffects: {
-                    [target.id]: [{ type: "dead", data: { cause: "imp" } }],
-                },
-            });
+                });
+            }
         };
 
         return (

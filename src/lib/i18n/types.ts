@@ -151,6 +151,15 @@ export type Translations = {
         evilNeighborsCount: string;
         evilNeighborsExplanation: string;
 
+        // Monk specific
+        monkInfo: string;
+        selectPlayerToProtect: string;
+        protectedForTheNight: string;
+
+        // Soldier specific
+        soldierInfo: string;
+        permanentlyProtected: string;
+
         // Handback screen
         handbackToNarrator: string;
         handbackDescription: string;
@@ -188,6 +197,7 @@ export type Translations = {
             description: string;
             history: {
                 choseToKill: string;
+                failedToKill: string;
             };
         };
         washerwoman: {
@@ -226,6 +236,17 @@ export type Translations = {
                 sawEvilNeighbors: string;
             };
         };
+        monk: {
+            name: string;
+            description: string;
+            history: {
+                protectedPlayer: string;
+            };
+        };
+        soldier: {
+            name: string;
+            description: string;
+        };
     };
 
     // Effects
@@ -235,6 +256,10 @@ export type Translations = {
             description: string;
         };
         used_dead_vote: {
+            name: string;
+            description: string;
+        };
+        safe: {
             name: string;
             description: string;
         };

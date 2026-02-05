@@ -142,6 +142,15 @@ const es: Translations = {
         evilNeighborsExplanation:
             "Este es cuántos de tus vecinos vivos son malvados.",
 
+        // Monk specific
+        monkInfo: "Elige un Jugador",
+        selectPlayerToProtect: "Selecciona un jugador para proteger del Demonio esta noche.",
+        protectedForTheNight: "está protegido/a por esta noche.",
+
+        // Soldier specific
+        soldierInfo: "Tu Protección",
+        permanentlyProtected: "Estás permanentemente protegido del Demonio.",
+
         // Handback screen
         handbackToNarrator: "Devolver al Narrador",
         handbackDescription: "Por favor, devuelve el dispositivo al Narrador antes de continuar.",
@@ -177,6 +186,7 @@ const es: Translations = {
             description: "Cada noche*, elige un jugador: muere. Si te matas a ti mismo, un Secuaz se convierte en el Imp.",
             history: {
                 choseToKill: "{player} eligió matar a {target}",
+                failedToKill: "{player} intentó matar a {target}, pero estaba protegido/a",
             },
         },
         washerwoman: {
@@ -215,6 +225,17 @@ const es: Translations = {
                 sawEvilNeighbors: "{player} descubrió que {count} de sus vecinos son malvados",
             },
         },
+        monk: {
+            name: "Monje",
+            description: "Cada noche*, elige un jugador (no tú mismo): está a salvo del Demonio esta noche.",
+            history: {
+                protectedPlayer: "{player} protegió a {target} por esta noche",
+            },
+        },
+        soldier: {
+            name: "Soldado",
+            description: "Estás a salvo del Demonio.",
+        },
     },
 
     effects: {
@@ -225,6 +246,10 @@ const es: Translations = {
         used_dead_vote: {
             name: "Voto de Muerto Usado",
             description: "Este jugador muerto ha usado su único voto de muerto y no puede votar de nuevo.",
+        },
+        safe: {
+            name: "A Salvo",
+            description: "Este jugador está protegido de la muerte del Demonio.",
         },
     },
 

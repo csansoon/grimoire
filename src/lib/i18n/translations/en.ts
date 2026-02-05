@@ -153,6 +153,15 @@ const en: Translations = {
         evilNeighborsExplanation:
             "This is how many of your alive neighbors are evil.",
 
+        // Monk specific
+        monkInfo: "Choose a Player",
+        selectPlayerToProtect: "Select a player to protect from the Demon tonight.",
+        protectedForTheNight: "is protected for the night.",
+
+        // Soldier specific
+        soldierInfo: "Your Protection",
+        permanentlyProtected: "You are permanently protected from the Demon.",
+
         // Handback screen
         handbackToNarrator: "Hand back to Narrator",
         handbackDescription:
@@ -194,6 +203,7 @@ const en: Translations = {
                 "Each night*, choose a player: they die. If you kill yourself, a Minion becomes the Imp.",
             history: {
                 choseToKill: "{player} chose to kill {target}",
+                failedToKill: "{player} tried to kill {target}, but they were protected",
             },
         },
         washerwoman: {
@@ -240,6 +250,19 @@ const en: Translations = {
                 sawEvilNeighbors: "{player} learned that {count} of their neighbors are evil",
             },
         },
+        monk: {
+            name: "Monk",
+            description:
+                "Each night*, choose a player (not yourself): they are safe from the Demon tonight.",
+            history: {
+                protectedPlayer: "{player} protected {target} for the night",
+            },
+        },
+        soldier: {
+            name: "Soldier",
+            description:
+                "You are safe from the Demon.",
+        },
     },
 
     effects: {
@@ -252,6 +275,11 @@ const en: Translations = {
             name: "Used Dead Vote",
             description:
                 "This dead player has used their one dead vote and cannot vote again.",
+        },
+        safe: {
+            name: "Safe",
+            description:
+                "This player is protected from the Demon's kill.",
         },
     },
 
