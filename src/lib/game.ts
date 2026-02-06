@@ -10,6 +10,12 @@ import {
 } from "./types";
 import { getRole, getNightOrderRoles } from "./roles";
 import { NightActionResult, EffectToAdd } from "./roles/types";
+import {
+    resolveIntent,
+    applyPipelineChanges,
+    checkDynamicWinConditions,
+} from "./pipeline";
+import { NominateIntent } from "./pipeline/types";
 
 // ============================================================================
 // GAME CREATION
@@ -159,8 +165,8 @@ export function addHistoryEntry(
 export type GameStep =
     | { type: "role_reveal"; playerId: string }
     | { type: "night_action"; playerId: string; roleId: string }
-    | { type: "night_action_skip"; playerId: string; roleId: string } // Role's shouldWake returned false
-    | { type: "night_waiting" } // Waiting for narrator to start day
+    | { type: "night_action_skip"; playerId: string; roleId: string }
+    | { type: "night_waiting" }
     | { type: "day" }
     | { type: "voting"; nomineeId: string }
     | { type: "game_over"; winner: "townsfolk" | "demon" };
@@ -188,7 +194,6 @@ export function getNextStep(game: Game): GameStep {
             return { type: "role_reveal", playerId: nextPlayer.id };
         }
 
-        // All players have seen roles - this shouldn't happen, we transition to night
         return { type: "night_waiting" };
     }
 
@@ -206,12 +211,9 @@ export function getNextStep(game: Game): GameStep {
         // Find next role that hasn't acted
         for (const role of nightRoles) {
             if (!actedRoles.includes(role.id)) {
-                // Find the player with this role
                 const player = state.players.find((p) => p.roleId === role.id);
                 if (player) {
-                    // shouldWake handles ALL filtering: alive check, round check, conditions
                     if (role.shouldWake && !role.shouldWake(game, player)) {
-                        // Role should not wake - mark as skipped
                         return {
                             type: "night_action_skip",
                             playerId: player.id,
@@ -227,7 +229,6 @@ export function getNextStep(game: Game): GameStep {
             }
         }
 
-        // All roles have acted
         return { type: "night_waiting" };
     }
 
@@ -249,7 +250,6 @@ function findLastEventIndex(game: Game, eventType: string): number {
 
 /**
  * Check if an execution has already happened today.
- * This includes regular executions from voting and virgin-triggered executions.
  */
 export function hasExecutionToday(game: Game): boolean {
     const dayStartIndex = findLastEventIndex(game, "day_started");
@@ -359,16 +359,27 @@ export function applyNightAction(
 ): Game {
     let updatedGame = game;
 
-    for (const entry of result.entries) {
+    // Apply direct entries and effects (not the intent — that's handled by the pipeline)
+    const directEntries = result.entries;
+    const directResult = {
+        entries: directEntries,
+        stateUpdates: result.stateUpdates,
+        addEffects: result.addEffects,
+        removeEffects: result.removeEffects,
+    };
+
+    for (const entry of directResult.entries) {
         updatedGame = addHistoryEntry(
             updatedGame,
             entry,
-            result.stateUpdates,
-            result.addEffects,
-            result.removeEffects
+            directResult.stateUpdates,
+            directResult.addEffects,
+            directResult.removeEffects
         );
         // Only apply state/effects on first entry
-        result = { ...result, stateUpdates: undefined, addEffects: undefined, removeEffects: undefined };
+        directResult.stateUpdates = undefined;
+        directResult.addEffects = undefined;
+        directResult.removeEffects = undefined;
     }
 
     return updatedGame;
@@ -385,9 +396,14 @@ export function skipNightAction(game: Game, roleId: string, playerId: string): G
 }
 
 // ============================================================================
-// VOTING
+// NOMINATIONS — Resolved through the pipeline
 // ============================================================================
 
+/**
+ * Nominate a player for execution.
+ * The nomination goes through the pipeline, which handles effect interactions
+ * like the Virgin's Pure effect.
+ */
 export function nominate(
     game: Game,
     nominatorId: string,
@@ -399,129 +415,26 @@ export function nominate(
 
     if (!nominator || !nominee) return game;
 
-    // Check for Virgin with Pure effect
-    if (hasEffect(nominee, "pure")) {
-        const nominatorRole = getRole(nominator.roleId);
-        const isTownsfolk = nominatorRole?.team === "townsfolk";
+    const intent: NominateIntent = {
+        type: "nominate",
+        nominatorId,
+        nomineeId,
+    };
 
-        if (isTownsfolk) {
-            // Townsfolk nominates Virgin → Nominator is executed immediately!
-            return addHistoryEntry(
-                game,
-                {
-                    type: "virgin_execution",
-                    message: [
-                        { type: "i18n", key: "roles.virgin.history.townsfolkExecuted", params: { nominator: nominatorId } },
-                    ],
-                    data: { nominatorId, nomineeId, virginTriggered: true },
-                },
-                { phase: "day" },
-                { [nominatorId]: [{ type: "dead", expiresAt: "never" }] },
-                { [nomineeId]: ["pure"] }
-            );
-        } else {
-            // Non-townsfolk nominates Virgin → Virgin loses power, nomination continues
-            let updatedGame = addHistoryEntry(
-                game,
-                {
-                    type: "virgin_spent",
-                    message: [
-                        { type: "i18n", key: "roles.virgin.history.lostPurity", params: { nominator: nominatorId } },
-                    ],
-                    data: { nominatorId, nomineeId, virginTriggered: false },
-                },
-                undefined,
-                undefined,
-                { [nomineeId]: ["pure"] }
-            );
-            
-            // Then proceed with normal nomination
-            return addHistoryEntry(
-                updatedGame,
-                {
-                    type: "nomination",
-                    message: [
-                        { type: "i18n", key: "history.nominates", params: { nominator: nominatorId, nominee: nomineeId } },
-                    ],
-                    data: { nominatorId, nomineeId },
-                },
-                { phase: "voting" }
-            );
-        }
+    const result = resolveIntent(intent, state, game);
+
+    // Nominations never require UI input, so result is always resolved or prevented
+    if (result.type === "needs_input") {
+        // This shouldn't happen, but handle gracefully
+        return game;
     }
 
-    return addHistoryEntry(
-        game,
-        {
-            type: "nomination",
-            message: [
-                { type: "i18n", key: "history.nominates", params: { nominator: nominatorId, nominee: nomineeId } },
-            ],
-            data: { nominatorId, nomineeId },
-        },
-        { phase: "voting" }
-    );
+    return applyPipelineChanges(game, result.stateChanges);
 }
 
-/**
- * Check if any player has the slayer_bullet effect (can use slayer ability)
- */
-export function hasSlayerWithBullet(game: Game): boolean {
-    const state = getCurrentState(game);
-    return state.players.some((p) => hasEffect(p, "slayer_bullet") && !hasEffect(p, "dead"));
-}
-
-/**
- * Perform the Slayer's ability - shoot a target
- * Removes the slayer_bullet effect, kills target if they are the Demon
- */
-export function slayerShoot(
-    game: Game,
-    slayerId: string,
-    targetId: string
-): Game {
-    const state = getCurrentState(game);
-    const slayer = state.players.find((p) => p.id === slayerId);
-    const target = state.players.find((p) => p.id === targetId);
-
-    if (!slayer || !target) return game;
-    if (!hasEffect(slayer, "slayer_bullet")) return game;
-
-    const targetRole = getRole(target.roleId);
-    const isDemon = targetRole?.team === "demon";
-
-    if (isDemon) {
-        // Hit! Target dies
-        return addHistoryEntry(
-            game,
-            {
-                type: "slayer_shot",
-                message: [
-                    { type: "i18n", key: "roles.slayer.history.killedDemon", params: { slayer: slayerId, target: targetId } },
-                ],
-                data: { slayerId, targetId, hit: true },
-            },
-            undefined,
-            { [targetId]: [{ type: "dead", expiresAt: "never" }] },
-            { [slayerId]: ["slayer_bullet"] }
-        );
-    } else {
-        // Miss! Nothing happens (except losing the bullet)
-        return addHistoryEntry(
-            game,
-            {
-                type: "slayer_shot",
-                message: [
-                    { type: "i18n", key: "roles.slayer.history.missed", params: { slayer: slayerId, target: targetId } },
-                ],
-                data: { slayerId, targetId, hit: false },
-            },
-            undefined,
-            undefined,
-            { [slayerId]: ["slayer_bullet"] }
-        );
-    }
-}
+// ============================================================================
+// VOTING
+// ============================================================================
 
 export function resolveVote(
     game: Game,
@@ -551,9 +464,9 @@ export function resolveVote(
         {
             type: "vote",
             message: [
-                { type: "i18n", key: "history.voteResult", params: { 
+                { type: "i18n", key: "history.voteResult", params: {
                     player: nomineeId,
-                    for: votesFor.length, 
+                    for: votesFor.length,
                     against: votesAgainst.length,
                 }},
                 { type: "i18n", key: passed ? "history.votePassed" : "history.voteFailed" },
@@ -584,9 +497,13 @@ export function resolveVote(
 }
 
 // ============================================================================
-// WIN CONDITIONS
+// WIN CONDITIONS — Dynamic, effect/role-driven
 // ============================================================================
 
+/**
+ * Core win condition check: demons dead or 2 alive.
+ * Plus dynamic win conditions from effects and roles.
+ */
 export function checkWinCondition(
     state: GameState,
     game?: Game
@@ -607,47 +524,29 @@ export function checkWinCondition(
         return "demon";
     }
 
-    // Check martyrdom: if someone with martyrdom was just executed, evil wins
+    // Check dynamic win conditions from effects and roles
     if (game) {
-        const lastEntry = game.history[game.history.length - 1];
-        if (
-            lastEntry &&
-            (lastEntry.type === "execution" || lastEntry.type === "virgin_execution")
-        ) {
-            const executedPlayerId = lastEntry.data.playerId as string | undefined;
-            const nominatorId = lastEntry.data.nominatorId as string | undefined;
-            // For regular execution, the executed player is in data.playerId
-            // For virgin_execution, the nominator is executed
-            const killedId = executedPlayerId ?? nominatorId;
-            if (killedId) {
-                // Look up the player in the state BEFORE execution (they're now dead)
-                // Check if any dead player who just died has martyrdom
-                const killedPlayer = state.players.find((p) => p.id === killedId);
-                if (killedPlayer && hasEffect(killedPlayer, "martyrdom")) {
-                    return "demon";
-                }
-            }
-        }
+        const dynamicResult = checkDynamicWinConditions(
+            state,
+            game,
+            ["after_execution", "after_state_change"],
+            getRole
+        );
+        if (dynamicResult) return dynamicResult;
     }
 
     return null;
 }
 
 /**
- * Check if the Mayor's peaceful victory condition is met:
- * Exactly 3 alive players, no execution today, and at least one alive Mayor.
+ * Check end-of-day specific win conditions (e.g., Mayor's peaceful victory).
+ * Called when the narrator ends the day.
  */
-export function checkMayorVictory(game: Game): boolean {
-    const state = getCurrentState(game);
-    if (state.phase !== "day") return false;
-
-    const alivePlayers = getAlivePlayers(state);
-    if (alivePlayers.length !== 3) return false;
-    if (hasExecutionToday(game)) return false;
-
-    // Check if any alive player is the Mayor
-    const hasAliveMayor = alivePlayers.some((p) => p.roleId === "mayor");
-    return hasAliveMayor;
+export function checkEndOfDayWinConditions(
+    state: GameState,
+    game: Game
+): "townsfolk" | "demon" | null {
+    return checkDynamicWinConditions(state, game, ["end_of_day"], getRole);
 }
 
 export function endGame(game: Game, winner: "townsfolk" | "demon"): Game {

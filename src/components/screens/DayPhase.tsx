@@ -1,4 +1,5 @@
 import { GameState, PlayerState } from "../../lib/types";
+import { AvailableDayAction } from "../../lib/pipeline/types";
 import { useI18n } from "../../lib/i18n";
 import { Button, Icon } from "../atoms";
 import { Grimoire } from "../items/Grimoire";
@@ -7,16 +8,16 @@ import { MysticDivider } from "../items";
 type Props = {
     state: GameState;
     canNominate: boolean;
-    hasSlayerAction: boolean;
+    dayActions: AvailableDayAction[];
     onNominate: () => void;
-    onSlayerAction: () => void;
+    onDayAction: (action: AvailableDayAction) => void;
     onEndDay: () => void;
     onMainMenu: () => void;
     onShowRoleCard?: (player: PlayerState) => void;
     onEditEffects?: (player: PlayerState) => void;
 };
 
-export function DayPhase({ state, canNominate, hasSlayerAction, onNominate, onSlayerAction, onEndDay, onMainMenu, onShowRoleCard, onEditEffects }: Props) {
+export function DayPhase({ state, canNominate, dayActions, onNominate, onDayAction, onEndDay, onMainMenu, onShowRoleCard, onEditEffects }: Props) {
     const { t } = useI18n();
 
     return (
@@ -34,7 +35,7 @@ export function DayPhase({ state, canNominate, hasSlayerAction, onNominate, onSl
                         </button>
                         <span className="text-parchment-500 text-xs ml-1">{t.common.mainMenu}</span>
                     </div>
-                    
+
                     {/* Title section */}
                     <div className="text-center">
                         <div className="flex justify-center mb-2">
@@ -105,26 +106,27 @@ export function DayPhase({ state, canNominate, hasSlayerAction, onNominate, onSl
                             )}
                         </button>
 
-                        {/* Slayer Action Button */}
-                        {hasSlayerAction && (
+                        {/* Dynamic Day Actions from Effects */}
+                        {dayActions.map((action) => (
                             <button
-                                onClick={onSlayerAction}
+                                key={action.id}
+                                onClick={() => onDayAction(action)}
                                 className="w-full flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-amber-900/30 to-orange-800/20 border border-amber-500/30 hover:border-amber-500/50 transition-colors group"
                             >
                                 <div className="w-12 h-12 rounded-full bg-amber-900/40 border border-amber-500/40 flex items-center justify-center group-hover:scale-105 transition-transform">
-                                    <Icon name="crosshair" size="lg" className="text-amber-400" />
+                                    <Icon name={action.icon} size="lg" className="text-amber-400" />
                                 </div>
                                 <div className="flex-1 text-left">
                                     <div className="font-tarot text-parchment-100 tracking-wider uppercase">
-                                        {t.game.slayerAction}
+                                        {action.label}
                                     </div>
                                     <p className="text-parchment-500 text-xs mt-0.5">
-                                        {t.game.slayerActionDescription}
+                                        {action.description}
                                     </p>
                                 </div>
                                 <Icon name="arrowRight" size="md" className="text-parchment-500 group-hover:text-parchment-300 transition-colors" />
                             </button>
-                        )}
+                        ))}
                     </div>
                 </div>
             </div>

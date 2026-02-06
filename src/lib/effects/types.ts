@@ -1,7 +1,20 @@
 import { IconName } from "../../components/atoms/icon";
 import { GameState, PlayerState } from "../types";
+import {
+    IntentHandler,
+    DayActionDefinition,
+    WinConditionCheck,
+} from "../pipeline/types";
 
-export type EffectId = "dead" | "used_dead_vote" | "safe" | "red_herring" | "pure" | "slayer_bullet" | "bounce" | "martyrdom";
+export type EffectId =
+    | "dead"
+    | "used_dead_vote"
+    | "safe"
+    | "red_herring"
+    | "pure"
+    | "slayer_bullet"
+    | "bounce"
+    | "martyrdom";
 
 export type EffectDefinition = {
     id: EffectId;
@@ -18,4 +31,13 @@ export type EffectDefinition = {
 
     // Check if a player can nominate given this effect
     canNominate?: (player: PlayerState, state: GameState) => boolean;
+
+    // Pipeline intent handlers — intercept/modify/prevent intents
+    handlers?: IntentHandler[];
+
+    // Day actions this effect enables (shown as buttons on the day phase)
+    dayActions?: DayActionDefinition[];
+
+    // Win conditions this effect contributes
+    winConditions?: WinConditionCheck[];
 };

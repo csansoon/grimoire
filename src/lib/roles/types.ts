@@ -1,6 +1,7 @@
 import { GameState, PlayerState, HistoryEntry, Game } from "../types";
 import { IconName } from "../../components/atoms/icon";
 import { TeamId } from "../teams";
+import { Intent, WinConditionCheck } from "../pipeline/types";
 
 // ============================================================================
 // EFFECT TYPES
@@ -32,6 +33,8 @@ export type NightActionResult = {
     addEffects?: Record<string, EffectToAdd[]>;
     // Effects to remove from players (playerId -> effect types to remove)
     removeEffects?: Record<string, string[]>;
+    // Intent to resolve through the pipeline (for action roles like Imp)
+    intent?: Intent;
 };
 
 // ============================================================================
@@ -64,6 +67,9 @@ export type RoleDefinition = {
 
     // Effects that are applied to this player at game start
     initialEffects?: EffectToAdd[];
+
+    // Win conditions this role contributes (checked dynamically)
+    winConditions?: WinConditionCheck[];
 
     // Component to show when revealing role to player
     RoleReveal: React.FC<RoleRevealProps>;

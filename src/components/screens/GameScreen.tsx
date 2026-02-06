@@ -13,13 +13,22 @@ import {
     resolveVote,
     endGame,
     checkWinCondition,
-    checkMayorVictory,
+    checkEndOfDayWinConditions,
     hasExecutionToday,
-    hasSlayerWithBullet,
-    slayerShoot,
     addEffectToPlayer,
     removeEffectFromPlayer,
 } from "../../lib/game";
+import {
+    resolveIntent,
+    applyPipelineChanges,
+    getAvailableDayActions,
+} from "../../lib/pipeline";
+import {
+    PipelineResult,
+    PipelineInputProps,
+    AvailableDayAction,
+    DayActionResult,
+} from "../../lib/pipeline/types";
 import { saveGame } from "../../lib/storage";
 import { useI18n, interpolate } from "../../lib/i18n";
 import { NarratorPrompt } from "./NarratorPrompt";
@@ -29,12 +38,12 @@ import { VotingPhase } from "./VotingPhase";
 import { GameOver } from "./GameOver";
 import { HistoryView } from "./HistoryView";
 import { HandbackScreen } from "./HandbackScreen";
-import { SlayerActionScreen } from "./SlayerActionScreen";
 import { GrimoireModal } from "../items/GrimoireModal";
 import { EditEffectsModal } from "../items/EditEffectsModal";
 import { MysticDivider } from "../items";
 import { Button, Icon, LanguageToggle } from "../atoms";
 import { NightActionResult } from "../../lib/roles/types";
+import type { FC } from "react";
 
 type Props = {
     initialGame: Game;
@@ -49,8 +58,9 @@ type Screen =
     | { type: "night_waiting" }
     | { type: "day" }
     | { type: "nomination" }
-    | { type: "slayer_action" }
+    | { type: "day_action"; action: AvailableDayAction }
     | { type: "voting"; nomineeId: string }
+    | { type: "pipeline_input" }
     | { type: "game_over" }
     | { type: "grimoire_role_card"; playerId: string; returnTo: Screen };
 
@@ -61,9 +71,16 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
     const [showHistory, setShowHistory] = useState(false);
     const [showGrimoire, setShowGrimoire] = useState(false);
     const [editEffectsPlayer, setEditEffectsPlayer] = useState<PlayerState | null>(null);
-    
+
     // Store pending night action result to apply after handback
     const pendingNightActionResult = useRef<NightActionResult | null>(null);
+
+    // Pipeline UI state — shown when an intent needs narrator input mid-resolution
+    const [pipelineUI, setPipelineUI] = useState<{
+        Component: FC<PipelineInputProps>;
+        intent: import("../../lib/pipeline/types").Intent;
+        onResult: (result: unknown) => void;
+    } | null>(null);
 
     const state = getCurrentState(game);
 
@@ -71,6 +88,51 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         setGame(newGame);
         saveGame(newGame);
     }, []);
+
+    // ========================================================================
+    // PIPELINE INTEGRATION
+    // ========================================================================
+
+    /**
+     * Process a pipeline result. If resolved/prevented, apply changes and advance.
+     * If needs_input, show the pipeline's UI component.
+     */
+    const processPipelineResult = useCallback(
+        (result: PipelineResult, currentGame: Game) => {
+            if (result.type === "resolved" || result.type === "prevented") {
+                const newGame = applyPipelineChanges(currentGame, result.stateChanges);
+                updateGame(newGame);
+                setPipelineUI(null);
+
+                const winner = checkWinCondition(getCurrentState(newGame), newGame);
+                if (winner) {
+                    const finalGame = endGame(newGame, winner);
+                    updateGame(finalGame);
+                    setScreen({ type: "game_over" });
+                } else {
+                    advanceToNextStep(newGame);
+                }
+            } else if (result.type === "needs_input") {
+                // Pause — show the pipeline's UI and wait for narrator input
+                const resumeFn = result.resume;
+                setPipelineUI({
+                    Component: result.UIComponent,
+                    intent: result.intent,
+                    onResult: (uiResult: unknown) => {
+                        const resumed = resumeFn(uiResult);
+                        processPipelineResult(resumed, currentGame);
+                    },
+                });
+                setScreen({ type: "pipeline_input" });
+            }
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [updateGame]
+    );
+
+    // ========================================================================
+    // GAME FLOW
+    // ========================================================================
 
     const advanceToNextStep = useCallback((currentGame: Game) => {
         const step = getNextStep(currentGame);
@@ -91,12 +153,11 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                 });
                 break;
             case "night_action_skip": {
-                // Role's shouldWake returned false - auto-skip (no visible history entry)
                 const skippedGame = applyNightAction(currentGame, {
                     entries: [
                         {
                             type: "night_skipped",
-                            message: [], // Empty message = hidden from history UI
+                            message: [],
                             data: {
                                 roleId: step.roleId,
                                 playerId: step.playerId,
@@ -106,7 +167,6 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                     ],
                 });
                 updateGame(skippedGame);
-                // Recursively advance to next step
                 advanceToNextStep(skippedGame);
                 break;
             }
@@ -127,6 +187,10 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         }
     }, [updateGame]);
 
+    // ========================================================================
+    // EVENT HANDLERS
+    // ========================================================================
+
     const handleNarratorProceed = () => {
         if (screen.type !== "narrator_prompt") return;
 
@@ -146,15 +210,11 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
 
     const handleRoleRevealComplete = () => {
         if (screen.type !== "role_reveal") return;
-
-        // Go to handback screen before processing
         setScreen({ type: "handback", afterAction: "role_reveal", playerId: screen.playerId });
     };
 
     const handleNightActionComplete = (result: NightActionResult) => {
         if (screen.type !== "night_action") return;
-
-        // Store result and go to handback screen
         pendingNightActionResult.current = result;
         setScreen({ type: "handback", afterAction: "night_action", playerId: screen.playerId });
     };
@@ -163,7 +223,6 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         if (screen.type !== "handback") return;
 
         if (screen.afterAction === "role_reveal") {
-            // Process role reveal
             const newGame = markRoleRevealed(game, screen.playerId);
             updateGame(newGame);
 
@@ -180,24 +239,35 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                 advanceToNextStep(newGame);
             }
         } else if (screen.afterAction === "night_action") {
-            // Process night action
             const result = pendingNightActionResult.current;
             if (!result) {
                 advanceToNextStep(game);
                 return;
             }
 
+            // Apply direct entries/effects (not the intent)
             const newGame = applyNightAction(game, result);
             updateGame(newGame);
             pendingNightActionResult.current = null;
 
-            const winner = checkWinCondition(getCurrentState(newGame), newGame);
-            if (winner) {
-                const finalGame = endGame(newGame, winner);
-                updateGame(finalGame);
-                setScreen({ type: "game_over" });
+            if (result.intent) {
+                // Resolve the intent through the pipeline
+                const pipelineResult = resolveIntent(
+                    result.intent,
+                    getCurrentState(newGame),
+                    newGame
+                );
+                processPipelineResult(pipelineResult, newGame);
             } else {
-                advanceToNextStep(newGame);
+                // No intent — standard flow
+                const winner = checkWinCondition(getCurrentState(newGame), newGame);
+                if (winner) {
+                    const finalGame = endGame(newGame, winner);
+                    updateGame(finalGame);
+                    setScreen({ type: "game_over" });
+                } else {
+                    advanceToNextStep(newGame);
+                }
             }
         }
     };
@@ -232,12 +302,11 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         const newGame = nominate(game, nominatorId, nomineeId);
         updateGame(newGame);
 
-        // Check resulting state - Virgin ability might have prevented voting
         const newState = getCurrentState(newGame);
         if (newState.phase === "voting") {
             setScreen({ type: "voting", nomineeId });
         } else {
-            // Virgin triggered - check for win condition and stay on day
+            // Effect intercepted (e.g., Virgin) — check win condition
             const winner = checkWinCondition(newState, newGame);
             if (winner) {
                 const finalGame = endGame(newGame, winner);
@@ -249,15 +318,23 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         }
     };
 
-    const handleOpenSlayerAction = () => {
-        setScreen({ type: "slayer_action" });
+    // ========================================================================
+    // GENERIC DAY ACTIONS
+    // ========================================================================
+
+    const handleOpenDayAction = (action: AvailableDayAction) => {
+        setScreen({ type: "day_action", action });
     };
 
-    const handleSlayerShoot = (slayerId: string, targetId: string) => {
-        const newGame = slayerShoot(game, slayerId, targetId);
+    const handleDayActionComplete = (result: DayActionResult) => {
+        const changes = {
+            entries: result.entries,
+            addEffects: result.addEffects,
+            removeEffects: result.removeEffects,
+        };
+        const newGame = applyPipelineChanges(game, changes);
         updateGame(newGame);
 
-        // Check win condition after slayer shot
         const winner = checkWinCondition(getCurrentState(newGame), newGame);
         if (winner) {
             const finalGame = endGame(newGame, winner);
@@ -268,9 +345,13 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         }
     };
 
-    const handleBackFromSlayerAction = () => {
+    const handleBackFromDayAction = () => {
         setScreen({ type: "day" });
     };
+
+    // ========================================================================
+    // OTHER HANDLERS
+    // ========================================================================
 
     const handleOpenEditEffects = (player: PlayerState) => {
         setEditEffectsPlayer(player);
@@ -279,7 +360,6 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
     const handleAddEffect = (playerId: string, effectType: string) => {
         const newGame = addEffectToPlayer(game, playerId, effectType);
         updateGame(newGame);
-        // Update the player reference with latest state
         const updatedState = getCurrentState(newGame);
         const updatedPlayer = updatedState.players.find(p => p.id === playerId);
         if (updatedPlayer) {
@@ -290,7 +370,6 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
     const handleRemoveEffect = (playerId: string, effectType: string) => {
         const newGame = removeEffectFromPlayer(game, playerId, effectType);
         updateGame(newGame);
-        // Update the player reference with latest state
         const updatedState = getCurrentState(newGame);
         const updatedPlayer = updatedState.players.find(p => p.id === playerId);
         if (updatedPlayer) {
@@ -315,9 +394,10 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
     };
 
     const handleEndDay = () => {
-        // Check Mayor's peaceful victory before transitioning to night
-        if (checkMayorVictory(game)) {
-            const finalGame = endGame(game, "townsfolk");
+        // Check dynamic end-of-day win conditions (e.g., Mayor's peaceful victory)
+        const endOfDayWinner = checkEndOfDayWinConditions(state, game);
+        if (endOfDayWinner) {
+            const finalGame = endGame(game, endOfDayWinner);
             updateGame(finalGame);
             setScreen({ type: "game_over" });
             return;
@@ -338,10 +418,10 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
 
     const handleShowRoleCard = (player: PlayerState) => {
         setShowGrimoire(false);
-        setScreen({ 
-            type: "grimoire_role_card", 
-            playerId: player.id, 
-            returnTo: screen 
+        setScreen({
+            type: "grimoire_role_card",
+            playerId: player.id,
+            returnTo: screen,
         });
     };
 
@@ -350,6 +430,10 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
             setScreen(screen.returnTo);
         }
     };
+
+    // ========================================================================
+    // RENDER
+    // ========================================================================
 
     if (showHistory) {
         return (
@@ -420,7 +504,6 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
             case "night_waiting":
                 return (
                     <div className="min-h-app bg-gradient-to-b from-indigo-950 via-grimoire-purple to-grimoire-darker flex flex-col">
-                        {/* Back button */}
                         <div className="px-4 py-4">
                             <button
                                 onClick={onMainMenu}
@@ -430,10 +513,9 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                                 <span className="text-xs">{t.common.mainMenu}</span>
                             </button>
                         </div>
-                        
+
                         <div className="flex-1 flex items-center justify-center p-4">
                             <div className="max-w-sm w-full text-center">
-                                {/* Moon icon */}
                                 <div className="mb-8">
                                     <div className="w-24 h-24 mx-auto rounded-full bg-indigo-500/10 border border-indigo-400/30 flex items-center justify-center">
                                         <Icon name="moon" size="3xl" className="text-indigo-400" />
@@ -463,29 +545,48 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                     </div>
                 );
 
-            case "day":
+            case "day": {
+                // Collect available day actions from active effects
+                const dayActions = getAvailableDayActions(state, t);
+
                 return (
                     <DayPhase
                         state={state}
                         canNominate={!hasExecutionToday(game)}
-                        hasSlayerAction={hasSlayerWithBullet(game)}
+                        dayActions={dayActions}
                         onNominate={handleOpenNomination}
-                        onSlayerAction={handleOpenSlayerAction}
+                        onDayAction={handleOpenDayAction}
                         onEndDay={handleEndDay}
                         onMainMenu={onMainMenu}
                         onShowRoleCard={handleShowRoleCard}
                         onEditEffects={handleOpenEditEffects}
                     />
                 );
+            }
 
-            case "slayer_action":
+            case "day_action": {
+                const ActionComponent = screen.action.ActionComponent;
                 return (
-                    <SlayerActionScreen
+                    <ActionComponent
                         state={state}
-                        onShoot={handleSlayerShoot}
-                        onBack={handleBackFromSlayerAction}
+                        playerId={screen.action.playerId}
+                        onComplete={handleDayActionComplete}
+                        onBack={handleBackFromDayAction}
                     />
                 );
+            }
+
+            case "pipeline_input": {
+                if (!pipelineUI) return null;
+                const PipelineComponent = pipelineUI.Component;
+                return (
+                    <PipelineComponent
+                        state={state}
+                        intent={pipelineUI.intent}
+                        onComplete={pipelineUI.onResult}
+                    />
+                );
+            }
 
             case "grimoire_role_card": {
                 const player = getPlayer(state, screen.playerId);
@@ -526,19 +627,19 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
     };
 
     // Determine which floating buttons to show
-    const isPlayerFacingScreen = 
-        screen.type === "role_reveal" || 
+    const isPlayerFacingScreen =
+        screen.type === "role_reveal" ||
         screen.type === "night_action" ||
         screen.type === "grimoire_role_card" ||
         screen.type === "handback";
-    
+
     const showFloatingButtons = !isPlayerFacingScreen && screen.type !== "game_over";
 
     return (
         <div className="relative">
             {renderScreen()}
 
-            {/* Floating Language Toggle - always available */}
+            {/* Floating Language Toggle */}
             <div className="fixed top-4 right-4 z-50">
                 <LanguageToggle variant="floating" />
             </div>
@@ -546,7 +647,6 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
             {/* Floating Action Buttons */}
             {showFloatingButtons && (
                 <div className="fixed bottom-4 right-4 flex flex-col gap-2">
-                    {/* Grimoire Button */}
                     <button
                         onClick={() => setShowGrimoire(true)}
                         className="w-12 h-12 rounded-full bg-grimoire-dark/90 border border-mystic-gold/30 text-mystic-gold flex items-center justify-center shadow-lg hover:bg-grimoire-dark hover:border-mystic-gold/50 transition-colors"
@@ -554,8 +654,7 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                     >
                         <Icon name="scrollText" size="md" />
                     </button>
-                    
-                    {/* History Button */}
+
                     <button
                         onClick={() => setShowHistory(true)}
                         className="w-12 h-12 rounded-full bg-grimoire-dark/90 border border-parchment-500/30 text-parchment-400 flex items-center justify-center shadow-lg hover:bg-grimoire-dark hover:border-parchment-400/50 hover:text-parchment-300 transition-colors"
@@ -604,8 +703,6 @@ function getInitialScreen(game: Game): Screen {
                 action: "night_action",
             };
         case "night_action_skip":
-            // This shouldn't happen on initial load, but handle it gracefully
-            // The component will handle this via advanceToNextStep after mount
             return { type: "night_waiting" };
         case "night_waiting":
             return { type: "night_waiting" };
