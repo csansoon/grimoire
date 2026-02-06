@@ -350,6 +350,11 @@ const en: Translations = {
             description:
                 "If only 3 players live & no execution occurs, your team wins. If you die at night, another player might die instead.",
         },
+        saint: {
+            name: "Saint",
+            description:
+                "If you die by execution, your team loses.",
+        },
     },
 
     effects: {
@@ -387,6 +392,11 @@ const en: Translations = {
             name: "Bounce",
             description:
                 "If this player is targeted by the Demon at night, the Storyteller may redirect the kill to another player.",
+        },
+        martyrdom: {
+            name: "Martyrdom",
+            description:
+                "If this player is executed, the evil team wins.",
         },
     },
 

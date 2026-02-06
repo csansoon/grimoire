@@ -5,6 +5,7 @@ import {
     ArrowRightIcon,
     BookMarkedIcon,
     BirdhouseIcon,
+    BombIcon,
     CheckIcon,
     CheckCircleIcon,
     ChefHatIcon,
@@ -53,13 +54,14 @@ import {
     ZapOffIcon,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { flowerLotus } from "@lucide/lab";
+import { flowerLotus, starNorth } from "@lucide/lab";
 
 const Icons = {
     alertTriangle: AlertTriangleIcon,
     arrowLeft: ArrowLeftIcon,
     arrowRight: ArrowRightIcon,
     birdHouse: BirdhouseIcon,
+    bomb: BombIcon,
     bookMarked: BookMarkedIcon,
     check: CheckIcon,
     checkCircle: CheckCircleIcon,
@@ -110,7 +112,8 @@ const Icons = {
 };
 
 const LabIcons = {
-    flowerLotus: flowerLotus,
+    flowerLotus,
+    starNorth,
 }
 
 export type IconName = keyof typeof Icons | keyof typeof LabIcons;

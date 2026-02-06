@@ -323,6 +323,11 @@ const es: Translations = {
             description:
                 "Si solo quedan 3 jugadores vivos y no hay ejecución, tu equipo gana. Si mueres de noche, otro jugador podría morir en tu lugar.",
         },
+        saint: {
+            name: "Santo",
+            description:
+                "Si mueres por ejecución, tu equipo pierde.",
+        },
     },
 
     effects: {
@@ -357,6 +362,11 @@ const es: Translations = {
             name: "Rebote",
             description:
                 "Si este jugador es objetivo del Demonio de noche, el Narrador puede redirigir la muerte a otro jugador.",
+        },
+        martyrdom: {
+            name: "Martirio",
+            description:
+                "Si este jugador es ejecutado, el equipo malvado gana.",
         },
     },
 

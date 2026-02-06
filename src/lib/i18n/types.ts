@@ -328,6 +328,10 @@ export type Translations = {
             name: string;
             description: string;
         };
+        saint: {
+            name: string;
+            description: string;
+        };
     };
 
     // Effects
@@ -357,6 +361,10 @@ export type Translations = {
             description: string;
         };
         bounce: {
+            name: string;
+            description: string;
+        };
+        martyrdom: {
             name: string;
             description: string;
         };

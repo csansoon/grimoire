@@ -191,7 +191,7 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
             updateGame(newGame);
             pendingNightActionResult.current = null;
 
-            const winner = checkWinCondition(getCurrentState(newGame));
+            const winner = checkWinCondition(getCurrentState(newGame), newGame);
             if (winner) {
                 const finalGame = endGame(newGame, winner);
                 updateGame(finalGame);
@@ -214,7 +214,7 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         const newGame = startDay(game);
         updateGame(newGame);
 
-        const winner = checkWinCondition(getCurrentState(newGame));
+        const winner = checkWinCondition(getCurrentState(newGame), newGame);
         if (winner) {
             const finalGame = endGame(newGame, winner);
             updateGame(finalGame);
@@ -238,7 +238,7 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
             setScreen({ type: "voting", nomineeId });
         } else {
             // Virgin triggered - check for win condition and stay on day
-            const winner = checkWinCondition(newState);
+            const winner = checkWinCondition(newState, newGame);
             if (winner) {
                 const finalGame = endGame(newGame, winner);
                 updateGame(finalGame);
@@ -258,7 +258,7 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         updateGame(newGame);
 
         // Check win condition after slayer shot
-        const winner = checkWinCondition(getCurrentState(newGame));
+        const winner = checkWinCondition(getCurrentState(newGame), newGame);
         if (winner) {
             const finalGame = endGame(newGame, winner);
             updateGame(finalGame);
@@ -304,7 +304,7 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         const newGame = resolveVote(game, screen.nomineeId, votesFor, votesAgainst);
         updateGame(newGame);
 
-        const winner = checkWinCondition(getCurrentState(newGame));
+        const winner = checkWinCondition(getCurrentState(newGame), newGame);
         if (winner) {
             const finalGame = endGame(newGame, winner);
             updateGame(finalGame);

@@ -169,7 +169,7 @@ export function getNextStep(game: Game): GameStep {
     const state = getCurrentState(game);
 
     // Check win conditions first
-    const winResult = checkWinCondition(state);
+    const winResult = checkWinCondition(state, game);
     if (winResult) {
         return { type: "game_over", winner: winResult };
     }
@@ -587,7 +587,10 @@ export function resolveVote(
 // WIN CONDITIONS
 // ============================================================================
 
-export function checkWinCondition(state: GameState): "townsfolk" | "demon" | null {
+export function checkWinCondition(
+    state: GameState,
+    game?: Game
+): "townsfolk" | "demon" | null {
     const alivePlayers = getAlivePlayers(state);
     const aliveDemons = alivePlayers.filter((p) => {
         const role = getRole(p.roleId);
@@ -602,6 +605,29 @@ export function checkWinCondition(state: GameState): "townsfolk" | "demon" | nul
     // Evil wins if only 2 players remain (and one is a demon)
     if (alivePlayers.length <= 2 && aliveDemons.length > 0) {
         return "demon";
+    }
+
+    // Check martyrdom: if someone with martyrdom was just executed, evil wins
+    if (game) {
+        const lastEntry = game.history[game.history.length - 1];
+        if (
+            lastEntry &&
+            (lastEntry.type === "execution" || lastEntry.type === "virgin_execution")
+        ) {
+            const executedPlayerId = lastEntry.data.playerId as string | undefined;
+            const nominatorId = lastEntry.data.nominatorId as string | undefined;
+            // For regular execution, the executed player is in data.playerId
+            // For virgin_execution, the nominator is executed
+            const killedId = executedPlayerId ?? nominatorId;
+            if (killedId) {
+                // Look up the player in the state BEFORE execution (they're now dead)
+                // Check if any dead player who just died has martyrdom
+                const killedPlayer = state.players.find((p) => p.id === killedId);
+                if (killedPlayer && hasEffect(killedPlayer, "martyrdom")) {
+                    return "demon";
+                }
+            }
+        }
     }
 
     return null;
