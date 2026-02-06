@@ -8,7 +8,6 @@ import {
     DialogTitle,
     DialogBody,
     Icon,
-    Badge,
     Button,
 } from "../atoms";
 
