@@ -1,28 +1,33 @@
+import { useState } from "react";
 import { RoleDefinition } from "../../types";
-import { getRole } from "../../index";
+import { getRole, isPerceivedEvil, filterPlayersWithAlignmentRegistration } from "../../index";
 import { useI18n } from "../../../i18n";
 import { RoleCard } from "../../../../components/items/RoleCard";
-import { NightActionLayout } from "../../../../components/layouts";
-import { RoleRevealBadge } from "../../../../components/items";
+import { NightActionLayout, NarratorSetupLayout } from "../../../../components/layouts";
+import { RoleRevealBadge, StepSection, AlignmentRegistrationPrompt } from "../../../../components/items";
 import { Button, Icon } from "../../../../components/atoms";
 import { GameState, isAlive } from "../../../types";
 
+type Phase = "registration_setup" | "player_view";
+
 /**
  * Calculate the number of pairs of evil players sitting next to each other.
- * Dead players are skipped when determining neighbors.
+ * Uses the generic `isPerceivedEvil` to account for registration overrides.
  */
-function countEvilPairs(state: GameState): number {
+function countEvilPairs(
+    state: GameState,
+    getRoleFn: typeof getRole,
+    overrides?: Record<string, boolean>
+): number {
     const alivePlayers = state.players.filter(isAlive);
     if (alivePlayers.length < 2) return 0;
 
-    // Get indices of alive players in the original order
     const aliveIndices = state.players
         .map((p, i) => (isAlive(p) ? i : -1))
         .filter((i) => i !== -1);
 
     let evilPairs = 0;
 
-    // Check each pair of adjacent alive players (in circular order)
     for (let i = 0; i < aliveIndices.length; i++) {
         const currentIdx = aliveIndices[i];
         const nextIdx = aliveIndices[(i + 1) % aliveIndices.length];
@@ -30,22 +35,20 @@ function countEvilPairs(state: GameState): number {
         const currentPlayer = state.players[currentIdx];
         const nextPlayer = state.players[nextIdx];
 
-        const currentRole = getRole(currentPlayer.roleId);
-        const nextRole = getRole(nextPlayer.roleId);
+        const currentRole = getRoleFn(currentPlayer.roleId);
+        const nextRole = getRoleFn(nextPlayer.roleId);
 
-        const currentIsEvil = currentRole?.team === "minion" || currentRole?.team === "demon";
-        const nextIsEvil = nextRole?.team === "minion" || nextRole?.team === "demon";
+        const currentIsEvil = currentRole
+            ? isPerceivedEvil(currentRole, currentPlayer, overrides)
+            : false;
+        const nextIsEvil = nextRole
+            ? isPerceivedEvil(nextRole, nextPlayer, overrides)
+            : false;
 
         if (currentIsEvil && nextIsEvil) {
             evilPairs++;
         }
     }
-
-    // If we counted in a circle, we might have double-counted
-    // Actually no - each pair is only counted once since we go i -> i+1
-    // But if there are only 2 evil players sitting together, we count once
-    // If there are 3 evil in a row: A-B, B-C = 2 pairs
-    // This is correct behavior for Chef
 
     return evilPairs;
 }
@@ -55,7 +58,8 @@ const definition: RoleDefinition = {
     team: "townsfolk",
     icon: "chefHat",
     nightOrder: 13,
-    shouldWake: (game, player) => isAlive(player) && game.history.at(-1)?.stateAfter.round === 1,
+    shouldWake: (game, player) =>
+        isAlive(player) && game.history.at(-1)?.stateAfter.round === 1,
 
     RoleReveal: ({ player, onContinue }) => (
         <RoleCard player={player} onContinue={onContinue} />
@@ -64,8 +68,27 @@ const definition: RoleDefinition = {
     NightAction: ({ state, player, onComplete }) => {
         const { t } = useI18n();
 
-        // Calculate evil pairs
-        const evilPairs = countEvilPairs(state);
+        // Check if any alive player has alignment registration
+        const alivePlayers = state.players.filter(isAlive);
+        const playersWithRegistration = filterPlayersWithAlignmentRegistration(
+            alivePlayers,
+            getRole
+        );
+        const hasRegistration = playersWithRegistration.length > 0;
+
+        const [phase, setPhase] = useState<Phase>(
+            hasRegistration ? "registration_setup" : "player_view"
+        );
+        const [registrationOverrides, setRegistrationOverrides] = useState<
+            Record<string, boolean>
+        >({});
+
+        // Calculate evil pairs with overrides
+        const evilPairs = countEvilPairs(
+            state,
+            getRole,
+            hasRegistration ? registrationOverrides : undefined
+        );
 
         const handleComplete = () => {
             onComplete({
@@ -87,12 +110,53 @@ const definition: RoleDefinition = {
                             playerId: player.id,
                             action: "count_evil_pairs",
                             evilPairs,
+                            registrationOverrides:
+                                Object.keys(registrationOverrides).length > 0
+                                    ? registrationOverrides
+                                    : undefined,
                         },
                     },
                 ],
             });
         };
 
+        const getRoleName = (roleId: string) => {
+            const key = roleId as keyof typeof t.roles;
+            return t.roles[key]?.name ?? roleId;
+        };
+
+        const getPlayerName = (playerId: string) => {
+            return (
+                state.players.find((p) => p.id === playerId)?.name ?? "Unknown"
+            );
+        };
+
+        // Registration Setup Phase
+        if (phase === "registration_setup") {
+            return (
+                <NarratorSetupLayout
+                    icon="chefHat"
+                    roleName={getRoleName("chef")}
+                    playerName={getPlayerName(player.id)}
+                    onShowToPlayer={() => setPhase("player_view")}
+                >
+                    <StepSection step={1} label={t.game.reclusePrompt}>
+                        <AlignmentRegistrationPrompt
+                            players={playersWithRegistration}
+                            values={registrationOverrides}
+                            onChange={(id, val) =>
+                                setRegistrationOverrides((prev) => ({
+                                    ...prev,
+                                    [id]: val,
+                                }))
+                            }
+                        />
+                    </StepSection>
+                </NarratorSetupLayout>
+            );
+        }
+
+        // Player View Phase
         return (
             <NightActionLayout
                 player={player}

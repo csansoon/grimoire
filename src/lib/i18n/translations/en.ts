@@ -195,6 +195,17 @@ const en: Translations = {
         selectPlayerToSeeRole: "You have died! Select a player to learn their role.",
         playerRoleIs: "Their role is...",
 
+        // Recluse specific
+        reclusePrompt: "Recluse Registration",
+        doesRecluseRegisterAsEvil: "Does the Recluse ({player}) register as evil?",
+        recluseRegistersAsEvil: "Registers as Evil",
+        recluseRegistersAsGood: "Registers as Good",
+        doesRecluseRegisterAsDemon: "Does the Recluse ({player}) register as a Demon?",
+        recluseSelectDisplayRole: "What role does the Recluse ({player}) appear as?",
+        recluseShowAsOwnRole: "Show as Recluse (own role)",
+        recluseAsMinion: "Recluse (as Minion)",
+        recluseAsDemon: "Recluse (as Demon)",
+
         // Handback screen
         handbackToNarrator: "Hand back to Narrator",
         handbackDescription:
@@ -354,6 +365,11 @@ const en: Translations = {
             name: "Saint",
             description:
                 "If you die by execution, your team loses.",
+        },
+        recluse: {
+            name: "Recluse",
+            description:
+                "You might register as evil & as a Minion or Demon, even if dead.",
         },
     },
 

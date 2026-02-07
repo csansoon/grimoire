@@ -193,6 +193,17 @@ export type Translations = {
         selectPlayerToSeeRole: string;
         playerRoleIs: string;
 
+        // Recluse specific
+        reclusePrompt: string;
+        doesRecluseRegisterAsEvil: string;
+        recluseRegistersAsEvil: string;
+        recluseRegistersAsGood: string;
+        doesRecluseRegisterAsDemon: string;
+        recluseSelectDisplayRole: string;
+        recluseShowAsOwnRole: string;
+        recluseAsMinion: string;
+        recluseAsDemon: string;
+
         // Handback screen
         handbackToNarrator: string;
         handbackDescription: string;
@@ -329,6 +340,10 @@ export type Translations = {
             description: string;
         };
         saint: {
+            name: string;
+            description: string;
+        };
+        recluse: {
             name: string;
             description: string;
         };

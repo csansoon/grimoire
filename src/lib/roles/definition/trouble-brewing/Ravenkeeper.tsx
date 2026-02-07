@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { RoleDefinition } from "../../types";
-import { getRole } from "../../index";
+import { getRole, getAllRoles, hasRoleRegistration, getPossibleDisplayRoles } from "../../index";
 import { useI18n } from "../../../i18n";
 import { hasEffect, Game, PlayerState } from "../../../types";
 import { RoleCard } from "../../../../components/items/RoleCard";
-import { NightActionLayout } from "../../../../components/layouts";
-import { MysticDivider, RoleRevealBadge } from "../../../../components/items";
+import { NightActionLayout, NarratorSetupLayout } from "../../../../components/layouts";
+import { MysticDivider, RoleRevealBadge, StepSection, RoleRegistrationPrompt } from "../../../../components/items";
 import { SelectablePlayerItem } from "../../../../components/inputs";
 import { Button, Icon } from "../../../../components/atoms";
 
-type Phase = "select_player" | "show_role";
+type Phase = "select_player" | "registration_setup" | "show_role";
 
 // Helper to check if a player was killed this night
 function wasKilledThisNight(game: Game, playerId: string): boolean {
@@ -60,6 +60,7 @@ const definition: RoleDefinition = {
         const { t } = useI18n();
         const [phase, setPhase] = useState<Phase>("select_player");
         const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+        const [displayRoleId, setDisplayRoleId] = useState<string | null>(null);
 
         // We know we were killed (shouldWake returned true)
         const otherPlayers = state.players.filter((p) => p.id !== player.id);
@@ -70,6 +71,22 @@ const definition: RoleDefinition = {
 
         const handleShowRole = () => {
             if (!selectedPlayer) return;
+
+            // Check if the target has role registration
+            const target = state.players.find((p) => p.id === selectedPlayer);
+            const targetRole = target ? getRole(target.roleId) : null;
+
+            if (targetRole && hasRoleRegistration(targetRole)) {
+                // Narrator must choose what role to display
+                setDisplayRoleId(null);
+                setPhase("registration_setup");
+            } else {
+                setPhase("show_role");
+            }
+        };
+
+        const handleRegistrationDone = () => {
+            if (!displayRoleId) return;
             setPhase("show_role");
         };
 
@@ -79,8 +96,10 @@ const definition: RoleDefinition = {
             const targetPlayer = state.players.find((p) => p.id === selectedPlayer);
             if (!targetPlayer) return;
 
-            const targetRole = getRole(targetPlayer.roleId);
-            if (!targetRole) return;
+            // Use overridden role if registration was used, otherwise actual role
+            const shownRoleId = displayRoleId ?? targetPlayer.roleId;
+            const shownRole = getRole(shownRoleId);
+            if (!shownRole) return;
 
             onComplete({
                 entries: [
@@ -93,7 +112,7 @@ const definition: RoleDefinition = {
                                 params: {
                                     player: player.id,
                                     target: targetPlayer.id,
-                                    role: targetRole.id,
+                                    role: shownRole.id,
                                 },
                             },
                         ],
@@ -102,7 +121,9 @@ const definition: RoleDefinition = {
                             playerId: player.id,
                             action: "saw_role",
                             targetId: targetPlayer.id,
-                            targetRoleId: targetRole.id,
+                            targetRoleId: shownRole.id,
+                            actualRoleId: targetPlayer.roleId,
+                            registrationOverride: displayRoleId ? true : undefined,
                         },
                     },
                 ],
@@ -155,9 +176,39 @@ const definition: RoleDefinition = {
             );
         }
 
+        // Phase 1.5: Registration Setup - Narrator picks displayed role
+        if (phase === "registration_setup") {
+            const targetPlayer = state.players.find((p) => p.id === selectedPlayer);
+            const targetRole = targetPlayer ? getRole(targetPlayer.roleId) : null;
+            const possibleRoles = targetRole
+                ? getPossibleDisplayRoles(targetRole, getAllRoles())
+                : [];
+
+            return (
+                <NarratorSetupLayout
+                    icon="birdHouse"
+                    roleName={getRoleName("ravenkeeper")}
+                    playerName={targetPlayer?.name ?? "Unknown"}
+                    onShowToPlayer={handleRegistrationDone}
+                    showToPlayerDisabled={!displayRoleId}
+                >
+                    <StepSection step={1} label={t.game.reclusePrompt}>
+                        <RoleRegistrationPrompt
+                            player={{ id: targetPlayer?.id ?? "", name: targetPlayer?.name ?? "Unknown" }}
+                            possibleRoles={possibleRoles}
+                            selectedRoleId={displayRoleId}
+                            onSelect={setDisplayRoleId}
+                            ownRoleLabel={t.game.recluseShowAsOwnRole}
+                        />
+                    </StepSection>
+                </NarratorSetupLayout>
+            );
+        }
+
         // Phase 2: Show the selected player's role
         const targetPlayer = state.players.find((p) => p.id === selectedPlayer);
-        const targetRole = targetPlayer ? getRole(targetPlayer.roleId) : null;
+        const shownRoleId = displayRoleId ?? targetPlayer?.roleId;
+        const targetRole = shownRoleId ? getRole(shownRoleId) : null;
 
         return (
             <NightActionLayout

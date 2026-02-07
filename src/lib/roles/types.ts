@@ -4,6 +4,28 @@ import { TeamId } from "../teams";
 import { Intent, WinConditionCheck } from "../pipeline/types";
 
 // ============================================================================
+// REGISTRATION CONFIG
+// ============================================================================
+
+/**
+ * Declarative config for roles that can register differently when detected
+ * by other abilities. The Narrator is prompted to choose how such a role
+ * registers whenever another ability reads its alignment or role.
+ *
+ * This keeps roles decoupled: the detecting role doesn't know *which* role
+ * has registration overrides — it only checks whether the generic config
+ * exists and renders the generic prompt components.
+ */
+export type RegistrationConfig = {
+    /** Can this role register as evil when alignment is checked? */
+    canRegisterAsEvil: boolean;
+    /** Which team types can this role register as? (for team-detection abilities) */
+    canRegisterAsTeams: TeamId[];
+    /** Can this role appear as a different role when revealed? */
+    canAppearAsDifferentRole: boolean;
+};
+
+// ============================================================================
 // EFFECT TYPES
 // ============================================================================
 
@@ -50,7 +72,7 @@ export type RoleRevealProps = {
 // ROLE DEFINITION
 // ============================================================================
 
-export type RoleId = "villager" | "imp" | "washerwoman" | "librarian" | "investigator" | "chef" | "empath" | "fortune_teller" | "undertaker" | "monk" | "ravenkeeper" | "soldier" | "virgin" | "slayer" | "mayor" | "saint";
+export type RoleId = "villager" | "imp" | "washerwoman" | "librarian" | "investigator" | "chef" | "empath" | "fortune_teller" | "undertaker" | "monk" | "ravenkeeper" | "soldier" | "virgin" | "slayer" | "mayor" | "saint" | "recluse";
 
 export type RoleDefinition = {
     id: RoleId;
@@ -70,6 +92,10 @@ export type RoleDefinition = {
 
     // Win conditions this role contributes (checked dynamically)
     winConditions?: WinConditionCheck[];
+
+    // Registration overrides — if set, this role can register differently
+    // when detected by other abilities (e.g. registering as evil or as a Demon)
+    registration?: RegistrationConfig;
 
     // Component to show when revealing role to player
     RoleReveal: React.FC<RoleRevealProps>;

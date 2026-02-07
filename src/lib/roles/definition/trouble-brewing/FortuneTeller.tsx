@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { RoleDefinition, EffectToAdd, NightActionResult } from "../../types";
-import { getRole } from "../../index";
+import { getRole, canRegisterAsTeam } from "../../index";
 import { isAlive } from "../../../types";
-import { useI18n } from "../../../i18n";
+import { useI18n, interpolate } from "../../../i18n";
 import { RoleCard } from "../../../../components/items/RoleCard";
 import { NightActionLayout, NarratorSetupLayout } from "../../../../components/layouts";
 import {
@@ -12,13 +12,13 @@ import {
 import { SelectablePlayerItem } from "../../../../components/inputs";
 import { Button, Icon } from "../../../../components/atoms";
 
-type Phase = "red_herring_setup" | "narrator_setup" | "player_view";
+type Phase = "red_herring_setup" | "narrator_setup" | "registration_setup" | "player_view";
 
 const definition: RoleDefinition = {
     id: "fortune_teller",
     team: "townsfolk",
     icon: "eye",
-    nightOrder: 15, // After info roles like Washerwoman, before protection roles like Monk
+    nightOrder: 15,
     shouldWake: (_game, player) => isAlive(player),
 
     RoleReveal: ({ player, onContinue }) => (
@@ -45,6 +45,9 @@ const definition: RoleDefinition = {
         const [selectedRedHerring, setSelectedRedHerring] = useState<string | null>(null);
         const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
         const [pendingEffects, setPendingEffects] = useState<Record<string, EffectToAdd[]>>({});
+        const [registrationOverrides, setRegistrationOverrides] = useState<
+            Record<string, boolean>
+        >({});
 
         // Get good players for Red Herring selection (not the Fortune Teller themselves)
         const goodPlayers = state.players.filter((p) => {
@@ -64,8 +67,6 @@ const definition: RoleDefinition = {
 
         const handleConfirmRedHerring = () => {
             if (!selectedRedHerring) return;
-            
-            // Store the effect to be added later with the main action
             setPendingEffects({
                 [selectedRedHerring]: [
                     {
@@ -75,7 +76,6 @@ const definition: RoleDefinition = {
                     },
                 ],
             });
-            
             setPhase("narrator_setup");
         };
 
@@ -90,9 +90,46 @@ const definition: RoleDefinition = {
             });
         };
 
+        // Find selected players that can register as demon (via registration config)
+        // but are NOT actually demons
+        const selectedWithDemonRegistration = selectedPlayers.filter((playerId) => {
+            const p = state.players.find((pl) => pl.id === playerId);
+            if (!p) return false;
+            const role = getRole(p.roleId);
+            if (!role) return false;
+            // Already a demon → no need to ask
+            if (role.team === "demon") return false;
+            // Can register as demon via registration config
+            return canRegisterAsTeam(role, "demon");
+        });
+
         const handleShowToPlayer = () => {
             if (selectedPlayers.length !== 2) return;
+            if (selectedWithDemonRegistration.length > 0) {
+                setPhase("registration_setup");
+            } else {
+                setPhase("player_view");
+            }
+        };
+
+        const handleRegistrationDone = () => {
             setPhase("player_view");
+        };
+
+        // Determine if the check shows "Demon found"
+        const isDemonOrRedHerringOrRegistered = (p: { id: string; roleId: string; effects: Array<{ type: string; data?: Record<string, unknown> }> }) => {
+            const role = getRole(p.roleId);
+            if (role?.team === "demon") return true;
+            if (p.effects.some(
+                (e) => e.type === "red_herring" && e.data?.fortuneTellerId === player.id
+            )) return true;
+            // Check registration override
+            if (registrationOverrides[p.id]) return true;
+            return false;
+        };
+
+        const isPendingRedHerring = (p: { id: string }) => {
+            return pendingEffects[p.id]?.some(e => e.type === "red_herring");
         };
 
         const handleComplete = () => {
@@ -102,27 +139,11 @@ const definition: RoleDefinition = {
             const player2 = state.players.find((p) => p.id === selectedPlayers[1]);
             if (!player1 || !player2) return;
 
-            // Check if either selected player is a Demon OR is this Fortune Teller's Red Herring
-            const isDemonOrRedHerring = (p: typeof player1) => {
-                const role = getRole(p.roleId);
-                if (role?.team === "demon") return true;
-                // Check if this player is the Red Herring for THIS Fortune Teller
-                return p.effects.some(
-                    (e) => e.type === "red_herring" && e.data?.fortuneTellerId === player.id
-                );
-            };
-
-            // Also check the pending red herring (just assigned this turn)
-            const isPendingRedHerring = (p: typeof player1) => {
-                return pendingEffects[p.id]?.some(e => e.type === "red_herring");
-            };
-
-            const sawDemon = isDemonOrRedHerring(player1) || isDemonOrRedHerring(player2) ||
+            const sawDemon = isDemonOrRedHerringOrRegistered(player1) || isDemonOrRedHerringOrRegistered(player2) ||
                             isPendingRedHerring(player1) || isPendingRedHerring(player2);
 
             const entries: NightActionResult["entries"] = [];
 
-            // If we just assigned a Red Herring, log it first
             if (selectedRedHerring && Object.keys(pendingEffects).length > 0) {
                 const redHerringPlayer = state.players.find((p) => p.id === selectedRedHerring);
                 if (redHerringPlayer) {
@@ -148,7 +169,6 @@ const definition: RoleDefinition = {
                 }
             }
 
-            // Log the check result
             entries.push({
                 type: "night_action",
                 message: [
@@ -170,6 +190,10 @@ const definition: RoleDefinition = {
                     action: "check",
                     checkedPlayers: selectedPlayers,
                     result: sawDemon ? "yes" : "no",
+                    registrationOverrides:
+                        Object.keys(registrationOverrides).length > 0
+                            ? registrationOverrides
+                            : undefined,
                 },
             });
 
@@ -264,6 +288,7 @@ const definition: RoleDefinition = {
                             const role = getRole(p.roleId);
                             const isSelected = selectedPlayers.includes(p.id);
                             const isEvil = role?.team === "demon" || role?.team === "minion";
+                            const hasDemonRegistration = role ? (role.team !== "demon" && canRegisterAsTeam(role, "demon")) : false;
                             const isRedHerring = p.effects.some(
                                 (e) => e.type === "red_herring" && e.data?.fortuneTellerId === player.id
                             ) || (pendingEffects[p.id]?.some(e => e.type === "red_herring"));
@@ -276,7 +301,7 @@ const definition: RoleDefinition = {
                                     roleIcon={role?.icon ?? "user"}
                                     isSelected={isSelected}
                                     isDisabled={!isSelected && selectedPlayers.length >= 2}
-                                    highlightTeam={isEvil ? "demon" : isRedHerring ? "minion" : undefined}
+                                    highlightTeam={isEvil ? "demon" : isRedHerring ? "minion" : hasDemonRegistration ? "outsider" : undefined}
                                     teamLabel={isRedHerring ? t.effects.red_herring.name : undefined}
                                     onClick={() => handlePlayerToggle(p.id)}
                                 />
@@ -287,26 +312,79 @@ const definition: RoleDefinition = {
             );
         }
 
-        // Phase 3: Player View - Show the result
+        // Phase 2.5: Registration Setup - Does a selected player register as Demon?
+        if (phase === "registration_setup") {
+            const playersForPrompt = selectedWithDemonRegistration.map((playerId) => {
+                const p = state.players.find((pl) => pl.id === playerId);
+                return { id: playerId, name: p?.name ?? "Unknown" };
+            });
+
+            return (
+                <NarratorSetupLayout
+                    icon="eye"
+                    roleName={getRoleName("fortune_teller")}
+                    playerName={getPlayerName(player.id)}
+                    onShowToPlayer={handleRegistrationDone}
+                >
+                    <StepSection step={1} label={t.game.reclusePrompt}>
+                        {playersForPrompt.map((p) => {
+                            const isRegistered = registrationOverrides[p.id] ?? false;
+
+                            return (
+                                <div key={p.id} className="mb-4">
+                                    <p className="text-sm text-parchment-300 mb-3">
+                                        {interpolate(t.game.doesRecluseRegisterAsDemon, {
+                                            player: p.name,
+                                        })}
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() =>
+                                                setRegistrationOverrides((prev) => ({
+                                                    ...prev,
+                                                    [p.id]: false,
+                                                }))
+                                            }
+                                            className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-medium text-sm ${
+                                                !isRegistered
+                                                    ? "bg-emerald-700/40 border-emerald-500 text-emerald-200"
+                                                    : "bg-white/5 border-white/10 text-parchment-400 hover:border-white/30"
+                                            }`}
+                                        >
+                                            <Icon name="checkCircle" size="sm" className="inline mr-2" />
+                                            {t.game.recluseRegistersAsGood}
+                                        </button>
+                                        <button
+                                            onClick={() =>
+                                                setRegistrationOverrides((prev) => ({
+                                                    ...prev,
+                                                    [p.id]: true,
+                                                }))
+                                            }
+                                            className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-medium text-sm ${
+                                                isRegistered
+                                                    ? "bg-red-700/40 border-red-500 text-red-200"
+                                                    : "bg-white/5 border-white/10 text-parchment-400 hover:border-white/30"
+                                            }`}
+                                        >
+                                            <Icon name="skull" size="sm" className="inline mr-2" />
+                                            {t.game.recluseAsDemon}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </StepSection>
+                </NarratorSetupLayout>
+            );
+        }
+
+        // Phase 3: Player View
         const player1 = state.players.find((p) => p.id === selectedPlayers[0]);
         const player2 = state.players.find((p) => p.id === selectedPlayers[1]);
 
-        // Calculate result for display
-        const isDemonOrRedHerring = (p: typeof player1) => {
-            if (!p) return false;
-            const role = getRole(p.roleId);
-            if (role?.team === "demon") return true;
-            return p.effects.some(
-                (e) => e.type === "red_herring" && e.data?.fortuneTellerId === player.id
-            );
-        };
-        const isPendingRedHerring = (p: typeof player1) => {
-            if (!p) return false;
-            return pendingEffects[p.id]?.some(e => e.type === "red_herring");
-        };
-
-        const sawDemon = isDemonOrRedHerring(player1) || isDemonOrRedHerring(player2) ||
-                        isPendingRedHerring(player1) || isPendingRedHerring(player2);
+        const sawDemon = (player1 ? (isDemonOrRedHerringOrRegistered(player1) || isPendingRedHerring(player1)) : false) ||
+                        (player2 ? (isDemonOrRedHerringOrRegistered(player2) || isPendingRedHerring(player2)) : false);
 
         return (
             <NightActionLayout

@@ -184,6 +184,17 @@ const es: Translations = {
         selectPlayerToSeeRole: "¡Has muerto! Selecciona un jugador para conocer su rol.",
         playerRoleIs: "Su rol es...",
 
+        // Recluse specific
+        reclusePrompt: "Registro del Ermitaño",
+        doesRecluseRegisterAsEvil: "¿El Ermitaño ({player}) se registra como malvado?",
+        recluseRegistersAsEvil: "Se registra como Malvado",
+        recluseRegistersAsGood: "Se registra como Bueno",
+        doesRecluseRegisterAsDemon: "¿El Ermitaño ({player}) se registra como Demonio?",
+        recluseSelectDisplayRole: "¿Como qué rol aparece el Ermitaño ({player})?",
+        recluseShowAsOwnRole: "Mostrar como Ermitaño (rol propio)",
+        recluseAsMinion: "Ermitaño (como Secuaz)",
+        recluseAsDemon: "Ermitaño (como Demonio)",
+
         // Handback screen
         handbackToNarrator: "Devolver al Narrador",
         handbackDescription: "Por favor, devuelve el dispositivo al Narrador antes de continuar.",
@@ -327,6 +338,11 @@ const es: Translations = {
             name: "Santo",
             description:
                 "Si mueres por ejecución, tu equipo pierde.",
+        },
+        recluse: {
+            name: "Ermitaño",
+            description:
+                "Podrías registrarte como malvado y como Secuaz o Demonio, incluso si estás muerto.",
         },
     },
 

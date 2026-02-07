@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { RoleDefinition } from "../../types";
 import { isAlive } from "../../../types";
-import { getRole } from "../../index";
+import { getRole, canRegisterAsTeam } from "../../index";
 import { useI18n } from "../../../i18n";
 import { RoleCard } from "../../../../components/items/RoleCard";
 import { NightActionLayout, NarratorSetupLayout } from "../../../../components/layouts";
@@ -36,16 +36,18 @@ const definition: RoleDefinition = {
 
         const otherPlayers = state.players.filter((p) => p.id !== player.id);
 
-        const minionsInSelection = selectedPlayers.filter((playerId) => {
+        // Players in selection that are minions OR can register as minion
+        const minionEligibleInSelection = selectedPlayers.filter((playerId) => {
             const p = state.players.find((pl) => pl.id === playerId);
             if (!p) return false;
             const role = getRole(p.roleId);
-            return role?.team === "minion";
+            if (!role) return false;
+            return canRegisterAsTeam(role, "minion");
         });
 
         const canProceedToPlayer =
             selectedPlayers.length === 2 &&
-            minionsInSelection.length >= 1 &&
+            minionEligibleInSelection.length >= 1 &&
             selectedMinion !== null;
 
         const handlePlayerToggle = (playerId: string) => {
@@ -133,7 +135,9 @@ const definition: RoleDefinition = {
                         {otherPlayers.map((p) => {
                             const role = getRole(p.roleId);
                             const isSelected = selectedPlayers.includes(p.id);
-                            const isMinion = role?.team === "minion";
+                            const isNaturalMinion = role?.team === "minion";
+                            const canBeMinion = role ? canRegisterAsTeam(role, "minion") : false;
+                            const hasRegistration = canBeMinion && !isNaturalMinion;
 
                             return (
                                 <SelectablePlayerItem
@@ -143,17 +147,17 @@ const definition: RoleDefinition = {
                                     roleIcon={role?.icon ?? "user"}
                                     isSelected={isSelected}
                                     isDisabled={!isSelected && selectedPlayers.length >= 2}
-                                    highlightTeam={isMinion ? "minion" : undefined}
-                                    teamLabel={isMinion ? t.teams.minion.name : undefined}
+                                    highlightTeam={isNaturalMinion ? "minion" : hasRegistration ? "outsider" : undefined}
+                                    teamLabel={isNaturalMinion ? t.teams.minion.name : hasRegistration ? t.game.recluseAsMinion : undefined}
                                     onClick={() => handlePlayerToggle(p.id)}
                                 />
                             );
                         })}
                     </StepSection>
 
-                    {selectedPlayers.length === 2 && minionsInSelection.length > 0 && (
+                    {selectedPlayers.length === 2 && minionEligibleInSelection.length > 0 && (
                         <StepSection step={2} label={t.game.selectWhichRoleToShow}>
-                            {minionsInSelection.map((playerId) => {
+                            {minionEligibleInSelection.map((playerId) => {
                                 const p = state.players.find((pl) => pl.id === playerId);
                                 if (!p) return null;
                                 const role = getRole(p.roleId);
@@ -172,7 +176,7 @@ const definition: RoleDefinition = {
                         </StepSection>
                     )}
 
-                    {selectedPlayers.length === 2 && minionsInSelection.length === 0 && (
+                    {selectedPlayers.length === 2 && minionEligibleInSelection.length === 0 && (
                         <AlertBox message={t.game.mustIncludeMinion} />
                     )}
                 </NarratorSetupLayout>
