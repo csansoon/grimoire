@@ -8,3 +8,4 @@ export { PlayerNameCard } from "./PlayerNameCard";
 export { RoleRevealBadge } from "./RoleRevealBadge";
 export { MysticDivider } from "./MysticDivider";
 export { InfoBox } from "./InfoBox";
+export { AlignmentRegistrationPrompt, RoleRegistrationPrompt } from "./RegistrationPrompt";

@@ -1,49 +1,51 @@
 import { useState } from "react";
 import { RoleDefinition } from "../../types";
-import { getRole } from "../../index";
-import { useI18n, interpolate } from "../../../i18n";
+import { getRole, isPerceivedEvil, filterPlayersWithAlignmentRegistration } from "../../index";
+import { useI18n } from "../../../i18n";
 import { RoleCard } from "../../../../components/items/RoleCard";
 import { NightActionLayout, NarratorSetupLayout } from "../../../../components/layouts";
-import { RoleRevealBadge, StepSection } from "../../../../components/items";
+import { RoleRevealBadge, StepSection, AlignmentRegistrationPrompt } from "../../../../components/items";
 import { Button, Icon } from "../../../../components/atoms";
 import { GameState, isAlive } from "../../../types";
 
-type Phase = "narrator_setup" | "player_view";
+type Phase = "registration_setup" | "player_view";
 
 /**
  * Calculate the number of pairs of evil players sitting next to each other.
- * Accepts an optional set of player IDs that register as evil (for Recluse overrides).
+ * Uses the generic `isPerceivedEvil` to account for registration overrides.
  */
 function countEvilPairs(
     state: GameState,
-    recluseOverrides?: Record<string, boolean>
+    getRoleFn: typeof getRole,
+    overrides?: Record<string, boolean>
 ): number {
     const alivePlayers = state.players.filter(isAlive);
     if (alivePlayers.length < 2) return 0;
 
-    // Get indices of alive players in the original order
     const aliveIndices = state.players
         .map((p, i) => (isAlive(p) ? i : -1))
         .filter((i) => i !== -1);
 
-    const isEvil = (playerIdx: number): boolean => {
-        const player = state.players[playerIdx];
-        // Check Recluse override
-        if (player.roleId === "recluse" && recluseOverrides) {
-            return recluseOverrides[player.id] ?? false;
-        }
-        const role = getRole(player.roleId);
-        return role?.team === "minion" || role?.team === "demon";
-    };
-
     let evilPairs = 0;
 
-    // Check each pair of adjacent alive players (in circular order)
     for (let i = 0; i < aliveIndices.length; i++) {
         const currentIdx = aliveIndices[i];
         const nextIdx = aliveIndices[(i + 1) % aliveIndices.length];
 
-        if (isEvil(currentIdx) && isEvil(nextIdx)) {
+        const currentPlayer = state.players[currentIdx];
+        const nextPlayer = state.players[nextIdx];
+
+        const currentRole = getRoleFn(currentPlayer.roleId);
+        const nextRole = getRoleFn(nextPlayer.roleId);
+
+        const currentIsEvil = currentRole
+            ? isPerceivedEvil(currentRole, currentPlayer, overrides)
+            : false;
+        const nextIsEvil = nextRole
+            ? isPerceivedEvil(nextRole, nextPlayer, overrides)
+            : false;
+
+        if (currentIsEvil && nextIsEvil) {
             evilPairs++;
         }
     }
@@ -66,23 +68,26 @@ const definition: RoleDefinition = {
     NightAction: ({ state, player, onComplete }) => {
         const { t } = useI18n();
 
-        // Check if any alive player is a Recluse
-        const reclusePlayers = state.players.filter(
-            (p) => isAlive(p) && p.roleId === "recluse"
+        // Check if any alive player has alignment registration
+        const alivePlayers = state.players.filter(isAlive);
+        const playersWithRegistration = filterPlayersWithAlignmentRegistration(
+            alivePlayers,
+            getRole
         );
-        const hasRecluse = reclusePlayers.length > 0;
+        const hasRegistration = playersWithRegistration.length > 0;
 
         const [phase, setPhase] = useState<Phase>(
-            hasRecluse ? "narrator_setup" : "player_view"
+            hasRegistration ? "registration_setup" : "player_view"
         );
-        const [recluseRegistersAsEvil, setRecluseRegistersAsEvil] = useState<
+        const [registrationOverrides, setRegistrationOverrides] = useState<
             Record<string, boolean>
         >({});
 
-        // Calculate evil pairs with Recluse overrides
+        // Calculate evil pairs with overrides
         const evilPairs = countEvilPairs(
             state,
-            hasRecluse ? recluseRegistersAsEvil : undefined
+            getRole,
+            hasRegistration ? registrationOverrides : undefined
         );
 
         const handleComplete = () => {
@@ -105,9 +110,9 @@ const definition: RoleDefinition = {
                             playerId: player.id,
                             action: "count_evil_pairs",
                             evilPairs,
-                            recluseOverrides:
-                                Object.keys(recluseRegistersAsEvil).length > 0
-                                    ? recluseRegistersAsEvil
+                            registrationOverrides:
+                                Object.keys(registrationOverrides).length > 0
+                                    ? registrationOverrides
                                     : undefined,
                         },
                     },
@@ -126,8 +131,8 @@ const definition: RoleDefinition = {
             );
         };
 
-        // Narrator Setup Phase - Recluse registration
-        if (phase === "narrator_setup") {
+        // Registration Setup Phase
+        if (phase === "registration_setup") {
             return (
                 <NarratorSetupLayout
                     icon="chefHat"
@@ -136,67 +141,16 @@ const definition: RoleDefinition = {
                     onShowToPlayer={() => setPhase("player_view")}
                 >
                     <StepSection step={1} label={t.game.reclusePrompt}>
-                        {reclusePlayers.map((recluse) => {
-                            const isEvil =
-                                recluseRegistersAsEvil[recluse.id] ?? false;
-
-                            return (
-                                <div key={recluse.id} className="mb-4">
-                                    <p className="text-sm text-parchment-300 mb-3">
-                                        {interpolate(
-                                            t.game.doesRecluseRegisterAsEvil,
-                                            { player: recluse.name }
-                                        )}
-                                    </p>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() =>
-                                                setRecluseRegistersAsEvil(
-                                                    (prev) => ({
-                                                        ...prev,
-                                                        [recluse.id]: false,
-                                                    })
-                                                )
-                                            }
-                                            className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-medium text-sm ${
-                                                !isEvil
-                                                    ? "bg-emerald-700/40 border-emerald-500 text-emerald-200"
-                                                    : "bg-white/5 border-white/10 text-parchment-400 hover:border-white/30"
-                                            }`}
-                                        >
-                                            <Icon
-                                                name="checkCircle"
-                                                size="sm"
-                                                className="inline mr-2"
-                                            />
-                                            {t.game.recluseRegistersAsGood}
-                                        </button>
-                                        <button
-                                            onClick={() =>
-                                                setRecluseRegistersAsEvil(
-                                                    (prev) => ({
-                                                        ...prev,
-                                                        [recluse.id]: true,
-                                                    })
-                                                )
-                                            }
-                                            className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-medium text-sm ${
-                                                isEvil
-                                                    ? "bg-red-700/40 border-red-500 text-red-200"
-                                                    : "bg-white/5 border-white/10 text-parchment-400 hover:border-white/30"
-                                            }`}
-                                        >
-                                            <Icon
-                                                name="alertTriangle"
-                                                size="sm"
-                                                className="inline mr-2"
-                                            />
-                                            {t.game.recluseRegistersAsEvil}
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                        <AlignmentRegistrationPrompt
+                            players={playersWithRegistration}
+                            values={registrationOverrides}
+                            onChange={(id, val) =>
+                                setRegistrationOverrides((prev) => ({
+                                    ...prev,
+                                    [id]: val,
+                                }))
+                            }
+                        />
                     </StepSection>
                 </NarratorSetupLayout>
             );

@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { RoleDefinition } from "../../types";
-import { getRole, ROLES } from "../../index";
-import { useI18n, interpolate } from "../../../i18n";
+import { getRole, getAllRoles, hasRoleRegistration, getPossibleDisplayRoles } from "../../index";
+import { useI18n } from "../../../i18n";
 import { hasEffect, Game, PlayerState } from "../../../types";
 import { RoleCard } from "../../../../components/items/RoleCard";
 import { NightActionLayout, NarratorSetupLayout } from "../../../../components/layouts";
-import { MysticDivider, RoleRevealBadge, StepSection } from "../../../../components/items";
-import { SelectablePlayerItem, SelectableRoleItem } from "../../../../components/inputs";
+import { MysticDivider, RoleRevealBadge, StepSection, RoleRegistrationPrompt } from "../../../../components/items";
+import { SelectablePlayerItem } from "../../../../components/inputs";
 import { Button, Icon } from "../../../../components/atoms";
 
-type Phase = "select_player" | "recluse_setup" | "show_role";
+type Phase = "select_player" | "registration_setup" | "show_role";
 
 // Helper to check if a player was killed this night
 function wasKilledThisNight(game: Game, playerId: string): boolean {
@@ -37,13 +37,6 @@ function wasKilledThisNight(game: Game, playerId: string): boolean {
     }
 
     return false;
-}
-
-// Get all Minion and Demon roles available in the game
-function getEvilRoles() {
-    return Object.values(ROLES).filter(
-        (role) => role.team === "minion" || role.team === "demon"
-    );
 }
 
 const definition: RoleDefinition = {
@@ -79,18 +72,20 @@ const definition: RoleDefinition = {
         const handleShowRole = () => {
             if (!selectedPlayer) return;
 
-            // Check if the target is a Recluse
+            // Check if the target has role registration
             const target = state.players.find((p) => p.id === selectedPlayer);
-            if (target?.roleId === "recluse") {
-                // Go to Recluse setup - narrator picks what role to show
+            const targetRole = target ? getRole(target.roleId) : null;
+
+            if (targetRole && hasRoleRegistration(targetRole)) {
+                // Narrator must choose what role to display
                 setDisplayRoleId(null);
-                setPhase("recluse_setup");
+                setPhase("registration_setup");
             } else {
                 setPhase("show_role");
             }
         };
 
-        const handleRecluseDone = () => {
+        const handleRegistrationDone = () => {
             if (!displayRoleId) return;
             setPhase("show_role");
         };
@@ -101,7 +96,7 @@ const definition: RoleDefinition = {
             const targetPlayer = state.players.find((p) => p.id === selectedPlayer);
             if (!targetPlayer) return;
 
-            // Use overridden role if Recluse, otherwise use actual role
+            // Use overridden role if registration was used, otherwise actual role
             const shownRoleId = displayRoleId ?? targetPlayer.roleId;
             const shownRole = getRole(shownRoleId);
             if (!shownRole) return;
@@ -128,7 +123,7 @@ const definition: RoleDefinition = {
                             targetId: targetPlayer.id,
                             targetRoleId: shownRole.id,
                             actualRoleId: targetPlayer.roleId,
-                            recluseOverride: displayRoleId ? true : undefined,
+                            registrationOverride: displayRoleId ? true : undefined,
                         },
                     },
                 ],
@@ -181,45 +176,30 @@ const definition: RoleDefinition = {
             );
         }
 
-        // Phase 1.5: Recluse Setup - Narrator picks displayed role
-        if (phase === "recluse_setup") {
+        // Phase 1.5: Registration Setup - Narrator picks displayed role
+        if (phase === "registration_setup") {
             const targetPlayer = state.players.find((p) => p.id === selectedPlayer);
-            const evilRoles = getEvilRoles();
-
-            // Options: own role (Recluse) + all Minion/Demon roles
-            const roleOptions = [
-                { id: "recluse", label: t.game.recluseShowAsOwnRole, icon: "flowerLotus" as const },
-                ...evilRoles.map((r) => ({
-                    id: r.id,
-                    label: getRoleName(r.id),
-                    icon: r.icon,
-                })),
-            ];
+            const targetRole = targetPlayer ? getRole(targetPlayer.roleId) : null;
+            const possibleRoles = targetRole
+                ? getPossibleDisplayRoles(targetRole, getAllRoles())
+                : [];
 
             return (
                 <NarratorSetupLayout
                     icon="birdHouse"
                     roleName={getRoleName("ravenkeeper")}
                     playerName={targetPlayer?.name ?? "Unknown"}
-                    onShowToPlayer={handleRecluseDone}
+                    onShowToPlayer={handleRegistrationDone}
                     showToPlayerDisabled={!displayRoleId}
                 >
-                    <StepSection
-                        step={1}
-                        label={interpolate(t.game.recluseSelectDisplayRole, {
-                            player: targetPlayer?.name ?? "Unknown",
-                        })}
-                    >
-                        {roleOptions.map((option) => (
-                            <SelectableRoleItem
-                                key={option.id}
-                                playerName=""
-                                roleName={option.label}
-                                roleIcon={option.icon}
-                                isSelected={displayRoleId === option.id}
-                                onClick={() => setDisplayRoleId(option.id)}
-                            />
-                        ))}
+                    <StepSection step={1} label={t.game.reclusePrompt}>
+                        <RoleRegistrationPrompt
+                            player={{ id: targetPlayer?.id ?? "", name: targetPlayer?.name ?? "Unknown" }}
+                            possibleRoles={possibleRoles}
+                            selectedRoleId={displayRoleId}
+                            onSelect={setDisplayRoleId}
+                            ownRoleLabel={t.game.recluseShowAsOwnRole}
+                        />
                     </StepSection>
                 </NarratorSetupLayout>
             );

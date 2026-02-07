@@ -122,3 +122,4 @@ export function getRecommendedDistribution(
 }
 
 export * from "./types";
+export * from "./registration";
