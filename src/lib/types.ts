@@ -73,6 +73,7 @@ export type EventType =
     | "slayer_shot"
     | "effect_added"
     | "effect_removed"
+    | "role_changed"
     | "game_ended";
 
 export type HistoryEntry = {

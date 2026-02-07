@@ -15,7 +15,8 @@ export type EffectId =
     | "pure"
     | "slayer_bullet"
     | "bounce"
-    | "martyrdom";
+    | "martyrdom"
+    | "scarlet_woman";
 
 export type EffectDefinition = {
     id: EffectId;

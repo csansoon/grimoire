@@ -38,6 +38,7 @@ export type StateChanges = {
     stateUpdates?: Partial<GameState>;
     addEffects?: Record<string, EffectToAdd[]>;
     removeEffects?: Record<string, string[]>;
+    changeRoles?: Record<string, string>; // playerId -> new roleId
 };
 
 // ============================================================================

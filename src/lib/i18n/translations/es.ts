@@ -328,6 +328,14 @@ const es: Translations = {
             description:
                 "Si mueres por ejecución, tu equipo pierde.",
         },
+        scarlet_woman: {
+            name: "Mujer Escarlata",
+            description:
+                "Si hay 5 o más jugadores vivos y el Demonio muere, tú te conviertes en el Demonio.",
+            history: {
+                becameDemon: "{player} se convirtió en el/la {role}",
+            },
+        },
     },
 
     effects: {
@@ -368,6 +376,11 @@ const es: Translations = {
             description:
                 "Si este jugador es ejecutado, el equipo malvado gana.",
         },
+        scarlet_woman: {
+            name: "Mujer Escarlata",
+            description:
+                "Si el Demonio muere con 5+ jugadores vivos, el jugador con este efecto se convierte en el Demonio.",
+        },
     },
 
     ui: {
@@ -396,6 +409,7 @@ const es: Translations = {
         evilWins: "¡El Mal gana! El pueblo ha caído.",
         effectAdded: "El Narrador añadió {effect} a {player}",
         effectRemoved: "El Narrador eliminó {effect} de {player}",
+        roleChanged: "{player} se convirtió en el/la {role}",
     },
 
     scripts: {

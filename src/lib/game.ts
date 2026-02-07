@@ -15,7 +15,7 @@ import {
     applyPipelineChanges,
     checkDynamicWinConditions,
 } from "./pipeline";
-import { NominateIntent } from "./pipeline/types";
+import { NominateIntent, ExecuteIntent } from "./pipeline/types";
 
 // ============================================================================
 // GAME CREATION
@@ -106,19 +106,21 @@ export function addHistoryEntry(
     entry: Omit<HistoryEntry, "id" | "timestamp" | "stateAfter">,
     stateUpdates?: Partial<GameState>,
     addEffects?: Record<string, EffectToAdd[]>,
-    removeEffects?: Record<string, string[]>
+    removeEffects?: Record<string, string[]>,
+    changeRoles?: Record<string, string>
 ): Game {
     const currentState = getCurrentState(game);
 
     // Apply state updates
     let newState = { ...currentState, ...stateUpdates };
 
-    // Apply effect changes
-    if (addEffects || removeEffects) {
+    // Apply effect and role changes
+    if (addEffects || removeEffects || changeRoles) {
         newState = {
             ...newState,
             players: newState.players.map((player) => {
                 let effects = [...player.effects];
+                let roleId = player.roleId;
 
                 // Remove effects
                 if (removeEffects?.[player.id]) {
@@ -138,7 +140,12 @@ export function addHistoryEntry(
                     effects = [...effects, ...newEffects];
                 }
 
-                return { ...player, effects };
+                // Change role
+                if (changeRoles?.[player.id]) {
+                    roleId = changeRoles[player.id];
+                }
+
+                return { ...player, effects, roleId };
             }),
         };
     }
@@ -478,19 +485,27 @@ export function resolveVote(
     );
 
     if (passed) {
-        // Execute the player
-        updatedGame = addHistoryEntry(
-            updatedGame,
-            {
-                type: "execution",
-                message: [
-                    { type: "i18n", key: "history.executed", params: { player: nomineeId } },
-                ],
-                data: { playerId: nomineeId },
-            },
-            undefined,
-            { [nomineeId]: [{ type: "dead", data: { cause: "execution" } }] }
+        // Route execution through the intent pipeline so effects can intercept
+        // (e.g., Scarlet Woman becoming the Demon when the Demon is executed)
+        const executeIntent: ExecuteIntent = {
+            type: "execute",
+            playerId: nomineeId,
+            cause: "execution",
+        };
+
+        const result = resolveIntent(
+            executeIntent,
+            getCurrentState(updatedGame),
+            updatedGame
         );
+
+        // Executions don't require UI input, so result is always resolved or prevented
+        if (result.type === "needs_input") {
+            // This shouldn't happen, but handle gracefully
+            return updatedGame;
+        }
+
+        updatedGame = applyPipelineChanges(updatedGame, result.stateChanges);
     }
 
     return updatedGame;

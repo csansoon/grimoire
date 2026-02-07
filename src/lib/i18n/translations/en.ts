@@ -355,6 +355,14 @@ const en: Translations = {
             description:
                 "If you die by execution, your team loses.",
         },
+        scarlet_woman: {
+            name: "Scarlet Woman",
+            description:
+                "If there are 5 or more players alive & the Demon dies, you become the Demon.",
+            history: {
+                becameDemon: "{player} became the {role}",
+            },
+        },
     },
 
     effects: {
@@ -398,6 +406,11 @@ const en: Translations = {
             description:
                 "If this player is executed, the evil team wins.",
         },
+        scarlet_woman: {
+            name: "Scarlet Woman",
+            description:
+                "If the Demon dies with 5+ players alive, the player with this effect becomes the Demon.",
+        },
     },
 
     ui: {
@@ -426,6 +439,7 @@ const en: Translations = {
         evilWins: "Evil wins! The town has fallen.",
         effectAdded: "Narrator added {effect} to {player}",
         effectRemoved: "Narrator removed {effect} from {player}",
+        roleChanged: "{player} became the {role}",
     },
 
     scripts: {

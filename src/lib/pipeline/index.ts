@@ -35,6 +35,10 @@ export function mergeStateChanges(
             target.removeEffects,
             source.removeEffects
         ),
+        changeRoles:
+            target.changeRoles || source.changeRoles
+                ? { ...target.changeRoles, ...source.changeRoles }
+                : undefined,
     };
 }
 
@@ -288,12 +292,13 @@ export function applyPipelineChanges(
                 ? { ...currentState, ...changes.stateUpdates }
                 : (updatedGame.history.at(-1)?.stateAfter ?? currentState);
 
-            // Apply effect changes on first entry
-            if (isFirst && (changes.addEffects || changes.removeEffects)) {
-                newState = applyEffectChanges(
+            // Apply effect and role changes on first entry
+            if (isFirst && (changes.addEffects || changes.removeEffects || changes.changeRoles)) {
+                newState = applyPlayerChanges(
                     newState,
                     changes.addEffects,
-                    changes.removeEffects
+                    changes.removeEffects,
+                    changes.changeRoles
                 );
             }
 
@@ -322,11 +327,12 @@ export function applyPipelineChanges(
     // No entries but there are state/effect changes — apply silently
     // by updating the last history entry's stateAfter
     let newState = { ...currentState, ...changes.stateUpdates };
-    if (changes.addEffects || changes.removeEffects) {
-        newState = applyEffectChanges(
+    if (changes.addEffects || changes.removeEffects || changes.changeRoles) {
+        newState = applyPlayerChanges(
             newState,
             changes.addEffects,
-            changes.removeEffects
+            changes.removeEffects,
+            changes.changeRoles
         );
     }
 
@@ -344,15 +350,17 @@ export function applyPipelineChanges(
     return game;
 }
 
-function applyEffectChanges(
+function applyPlayerChanges(
     state: GameState,
     addEffects?: Record<string, EffectToAdd[]>,
-    removeEffects?: Record<string, string[]>
+    removeEffects?: Record<string, string[]>,
+    changeRoles?: Record<string, string>
 ): GameState {
     return {
         ...state,
         players: state.players.map((player) => {
             let effects = [...player.effects];
+            let roleId = player.roleId;
 
             if (removeEffects?.[player.id]) {
                 effects = effects.filter(
@@ -370,7 +378,11 @@ function applyEffectChanges(
                 effects = [...effects, ...newEffects];
             }
 
-            return { ...player, effects };
+            if (changeRoles?.[player.id]) {
+                roleId = changeRoles[player.id];
+            }
+
+            return { ...player, effects, roleId };
         }),
     };
 }

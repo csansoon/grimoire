@@ -332,6 +332,13 @@ export type Translations = {
             name: string;
             description: string;
         };
+        scarlet_woman: {
+            name: string;
+            description: string;
+            history: {
+                becameDemon: string;
+            };
+        };
     };
 
     // Effects
@@ -368,6 +375,10 @@ export type Translations = {
             name: string;
             description: string;
         };
+        scarlet_woman: {
+            name: string;
+            description: string;
+        };
     };
 
     // UI
@@ -398,6 +409,7 @@ export type Translations = {
         evilWins: string;
         effectAdded: string;
         effectRemoved: string;
+        roleChanged: string;
     };
 
     // Scripts

@@ -34,9 +34,7 @@ const definition: RoleDefinition = {
             null
         );
 
-        const alivePlayers = state.players.filter(
-            (p) => isAlive(p) && p.id !== player.id
-        );
+        const alivePlayers = state.players.filter((p) => isAlive(p));
 
         const handleConfirm = () => {
             if (!selectedTarget) return;
