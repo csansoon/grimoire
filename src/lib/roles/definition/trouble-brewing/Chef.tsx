@@ -12,7 +12,7 @@ import { perceive } from "../../../pipeline";
  * Dead players are skipped when determining neighbors.
  * Uses the perception system so roles like Recluse/Spy are properly handled.
  */
-function countEvilPairs(state: GameState, observer: PlayerState): number {
+export function countEvilPairs(state: GameState, observer: PlayerState): number {
     const alivePlayers = state.players.filter(isAlive);
     if (alivePlayers.length < 2) return 0;
 

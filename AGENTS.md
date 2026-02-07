@@ -23,7 +23,8 @@ This document explains every system in the codebase, how they interconnect, and 
 13. [How to Implement a New Role](#13-how-to-implement-a-new-role)
 14. [How to Implement a New Effect](#14-how-to-implement-a-new-effect)
 15. [How to Add a New Intent Type](#15-how-to-add-a-new-intent-type)
-16. [Rules and Anti-Patterns](#16-rules-and-anti-patterns)
+16. [Testing](#16-testing)
+17. [Rules and Anti-Patterns](#17-rules-and-anti-patterns)
 
 ---
 
@@ -803,7 +804,144 @@ If you need a new category of game action that should be interceptable:
 
 ---
 
-## 16. Rules and Anti-Patterns
+## 16. Testing
+
+**Framework:** Vitest (integrated with Vite)
+
+### Running Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Run a specific test file
+pnpm test src/lib/roles/definition/trouble-brewing/Chef.test.ts
+
+# Run tests matching a pattern
+pnpm test Chef
+```
+
+Tests are configured in `vite.config.ts` to include `src/**/*.test.{ts,tsx}`.
+
+### Test Structure
+
+Tests are co-located with the files they test:
+
+```
+src/lib/
+├── __tests__/
+│   ├── helpers.ts           # Shared test utilities (makePlayer, makeState, etc.)
+│   ├── game.test.ts         # Game controller integration tests
+│   ├── pipeline.test.ts     # Intent pipeline integration tests
+│   ├── perception.test.ts   # Perception system tests
+│   ├── effects.test.ts      # Effect handler integration tests
+│   └── winConditions.test.ts # Win condition tests
+├── roles/definition/
+│   ├── Imp.test.ts
+│   └── trouble-brewing/
+│       ├── Chef.test.ts
+│       ├── Empath.test.ts
+│       └── ...
+└── effects/definition/
+    ├── Safe.test.ts
+    ├── Pure.test.ts
+    └── ...
+```
+
+### What to Test
+
+Tests must validate **features and behavior**, not definition metadata. Do not test `id`, `team`, `icon`, `nightOrder`, or other static properties.
+
+| Category | What to test |
+|----------|-------------|
+| **Information roles** (Chef, Empath, Washerwoman, etc.) | `shouldWake` conditions, perception integration including **deception** (false positives and false negatives via perception modifiers) |
+| **Action roles** (Imp, Monk) | `shouldWake` conditions |
+| **Passive roles** (Soldier, Virgin, Slayer, Saint) | Nothing — just an empty test delegating to the corresponding effect test file |
+| **Role win conditions** (Mayor) | The `check` function with various game states (trigger conditions, edge cases) |
+| **Effect handlers** (Safe, Pure, Bounce) | `appliesTo` guard, `handle` logic (action type, stateChanges, history entries) |
+| **Effect day actions** (SlayerBullet) | `condition` function (alive checks, effect presence) |
+| **Effect win conditions** (Martyrdom) | `check` function with matching and non-matching history entries |
+| **Effect behavior flags** (Dead, UsedDeadVote) | `canVote`, `canNominate`, `preventsNightWake`, etc. |
+
+### Testing Perception Deception
+
+To test that information roles handle deception correctly (e.g., a Recluse appearing evil to the Chef), mock `getEffect` to inject a test effect with perception modifiers:
+
+```typescript
+import { vi } from "vitest";
+import { EffectDefinition, EffectId } from "../../../effects/types";
+
+vi.mock("../../../effects", async (importOriginal) => {
+    const actual = (await importOriginal()) as Record<string, unknown>;
+    return {
+        ...actual,
+        getEffect: (effectId: string) => {
+            if (testEffects[effectId]) return testEffects[effectId];
+            return (actual.getEffect as (id: string) => EffectDefinition | undefined)(effectId);
+        },
+    };
+});
+
+const testEffects: Record<string, EffectDefinition> = {};
+
+// In tests:
+testEffects["appears_evil"] = {
+    id: "appears_evil" as EffectId,
+    icon: "user",
+    perceptionModifiers: [{
+        context: "alignment",
+        modify: (p) => ({ ...p, alignment: "evil" }),
+    }],
+};
+const player = addEffectTo(makePlayer({ roleId: "villager" }), "appears_evil");
+// Now `perceive(player, observer, "alignment", state).alignment` === "evil"
+```
+
+Always test both directions:
+- **False positive**: a good player appearing evil/wrong team
+- **False negative**: an evil player appearing good/different team
+
+### Test Helpers
+
+`src/lib/__tests__/helpers.ts` provides:
+
+| Helper | Purpose |
+|--------|---------|
+| `makePlayer({ id, roleId, ... })` | Creates a `PlayerState` |
+| `addEffectTo(player, effectType, data?, expiresAt?)` | Returns a new player with the effect added |
+| `makeState({ phase, round, players })` | Creates a `GameState` |
+| `makeGame(state?)` | Creates a `Game` with a single history entry |
+| `makeGameWithHistory(entries, baseState?)` | Creates a `Game` with specific history entries |
+| `makeStandardPlayers()` | Creates a standard 5-player set |
+| `resetPlayerCounter()` | Resets the auto-incrementing player counter (call in `beforeEach`) |
+
+### Empty Tests
+
+If a role or effect has no testable behavior of its own (e.g., Villager, or roles whose behavior is entirely on a separate effect), create a minimal test:
+
+```typescript
+import { it, expect } from "vitest";
+
+it("Villager has no testable features", () => {
+    expect(true);
+});
+```
+
+### After Modifying Code
+
+Always run lints after editing files to catch issues:
+
+```bash
+# Check lints on modified files (use ReadLints tool in Cursor)
+# Then run the full test suite
+pnpm test
+```
+
+Tests run as a required step in the CI/CD pipeline (`.github/workflows/deploy.yml`) before building. A failing test will block deployment.
+
+---
+
+## 17. Rules and Anti-Patterns
 
 ### DO
 
