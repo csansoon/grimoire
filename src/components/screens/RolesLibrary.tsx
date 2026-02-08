@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { SCRIPTS, getRole } from "../../lib/roles";
-import { RoleId } from "../../lib/roles/types";
 import { getTeam, TeamId } from "../../lib/teams";
 import { useI18n } from "../../lib/i18n";
 import { Icon } from "../atoms";
