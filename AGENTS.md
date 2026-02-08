@@ -1,6 +1,6 @@
 # Grimoire — Agent Manual
 
-This is a **Blood on the Clocktower** narrator companion app built with React 18, TypeScript, Vite, Tailwind CSS, and Radix UI. It guides the narrator through all game phases — setup, night actions, day discussion, nominations, voting, and game-over — by passing the device between narrator and players.
+This is a **Blood on the Clocktower** narrator companion app built with React 18, TypeScript, Vite, Tailwind CSS, and Radix UI. It guides the narrator through all game phases — role revelation, night actions, day discussion, nominations, voting, and game-over. The narrator controls the device at all times and shows the screen to players when needed (no device passing).
 
 This document explains every system in the codebase, how they interconnect, and the patterns you must follow when implementing new features.
 
@@ -16,15 +16,16 @@ This document explains every system in the codebase, how they interconnect, and 
 6. [The Intent Pipeline](#6-the-intent-pipeline)
 7. [The Perception System](#7-the-perception-system)
 8. [Day Actions](#8-day-actions)
-9. [Win Conditions](#9-win-conditions)
-10. [The Screen State Machine](#10-the-screen-state-machine)
-11. [UI Components](#11-ui-components)
-12. [Internationalization (i18n)](#12-internationalization-i18n)
-13. [How to Implement a New Role](#13-how-to-implement-a-new-role)
-14. [How to Implement a New Effect](#14-how-to-implement-a-new-effect)
-15. [How to Add a New Intent Type](#15-how-to-add-a-new-intent-type)
-16. [Testing](#16-testing)
-17. [Rules and Anti-Patterns](#17-rules-and-anti-patterns)
+9. [Night Follow-Ups](#9-night-follow-ups)
+10. [Win Conditions](#10-win-conditions)
+11. [The Screen State Machine](#11-the-screen-state-machine)
+12. [UI Components](#12-ui-components)
+13. [Internationalization (i18n)](#13-internationalization-i18n)
+14. [How to Implement a New Role](#14-how-to-implement-a-new-role)
+15. [How to Implement a New Effect](#15-how-to-implement-a-new-effect)
+16. [How to Add a New Intent Type](#16-how-to-add-a-new-intent-type)
+17. [Testing](#17-testing)
+18. [Rules and Anti-Patterns](#18-rules-and-anti-patterns)
 
 ---
 
@@ -174,11 +175,25 @@ The night action flow is critical. When `applyNightAction()` is called:
 
 This separation exists because the pipeline may return `needs_input` (requiring UI), which the game controller can't handle — only the React component can.
 
+### Night Role Status
+
+`getNightRolesStatus(game)` returns a list of `NightRoleStatus` entries for the current night, indicating which roles need to act and whether they've already done so:
+
+```typescript
+type NightRoleStatus = {
+    roleId: string;
+    playerId: string;
+    playerName: string;
+    status: "pending" | "done";
+};
+```
+
+Only roles whose `shouldWake()` returns `true` (or is undefined) and who have a `nightOrder` appear in this list. Roles that don't need to wake are excluded entirely.
+
 ### Game Step Resolution
 
 `getNextStep()` determines what happens next:
 
-- In **setup**: finds the next player who hasn't seen their role
 - In **night**: finds the next role (by `nightOrder`) that hasn't acted
 - In **day**: returns `{ type: "day" }`
 - Always checks `checkWinCondition()` first
@@ -248,6 +263,7 @@ Effects are the primary mechanism for modular game behavior. They attach to play
 - Modify player state (dead, can't vote, can't nominate)
 - Intercept game intents (prevent kills, redirect kills, prevent nominations)
 - Register day actions (Slayer shot)
+- Register night follow-ups (reactive night actions, e.g., role change reveals)
 - Register win conditions (Saint/Martyrdom, Mayor peaceful victory)
 - Modify perception (how info roles see the player)
 
@@ -271,6 +287,7 @@ type EffectDefinition = {
     // Pipeline integration
     handlers?: IntentHandler[];             // Intercept/modify intents
     dayActions?: DayActionDefinition[];     // Register day-phase abilities
+    nightFollowUps?: NightFollowUpDefinition[];  // Register reactive night-phase actions
     winConditions?: WinConditionCheck[];    // Register custom win conditions
     perceptionModifiers?: PerceptionModifier[];  // Alter perceived identity
 };
@@ -288,6 +305,8 @@ type EffectDefinition = {
 | `slayer_bullet` | Slayer | One-shot day kill | `dayActions`: SlayerActionScreen |
 | `bounce` | Mayor | Redirects kills to another player | `handlers`: requests UI, redirects kill |
 | `martyrdom` | Saint | Evil wins if executed | `winConditions`: after_execution |
+| `scarlet_woman` | Scarlet Woman | Becomes Demon when Demon dies | `handlers`: piggybacks role change + `pending_role_reveal` |
+| `pending_role_reveal` | Scarlet Woman handler (or any role-changing effect) | Signals a role change needs to be revealed | `nightFollowUps`: shows RoleCard to narrator |
 
 ### Effect Lifecycle
 
@@ -558,7 +577,79 @@ type DayActionResult = {
 
 ---
 
-## 9. Win Conditions
+## 9. Night Follow-Ups
+
+**Files:** `src/lib/pipeline/types.ts`, `src/lib/pipeline/index.ts`
+
+Night follow-ups are reactive actions that appear in the Night Dashboard during the night phase. They are registered on effects via `nightFollowUps`, following the same pattern as `dayActions`. Follow-ups are used for consequences of night events — e.g., the Scarlet Woman needs a role change reveal after the Demon dies.
+
+### NightFollowUpDefinition
+
+```typescript
+type NightFollowUpDefinition = {
+    id: string;
+    icon: IconName;
+    getLabel: (t) => string;                               // i18n label
+    condition: (player, state, game) => boolean;            // When is this follow-up needed?
+    ActionComponent: FC<NightFollowUpProps>;                // The UI for this follow-up
+};
+
+type NightFollowUpProps = {
+    state: GameState;
+    game: Game;
+    playerId: string;
+    onComplete: (result: NightFollowUpResult) => void;
+};
+
+type NightFollowUpResult = {
+    entries: Omit<HistoryEntry, "id" | "timestamp" | "stateAfter">[];
+    addEffects?: Record<string, EffectToAdd[]>;
+    removeEffects?: Record<string, string[]>;
+};
+```
+
+### How Night Follow-Ups Are Collected
+
+`getAvailableNightFollowUps(state, game, t)` in `pipeline/index.ts` iterates over all players' effects, checks each `NightFollowUpDefinition.condition`, and returns an `AvailableNightFollowUp[]` array. The `NightDashboard` merges these with regular night actions into a unified list.
+
+### How Night Follow-Ups Work
+
+1. An effect handler creates a consequence (e.g., Scarlet Woman handler changes the player's role)
+2. The handler also adds an effect with `nightFollowUps` (e.g., `pending_role_reveal`)
+3. When the Night Dashboard re-renders, `getAvailableNightFollowUps()` picks up the new follow-up
+4. The follow-up appears as a clickable item in the night action list (with distinct purple styling)
+5. The narrator taps it, the follow-up's `ActionComponent` renders
+6. On completion, the result is applied (history entries, effect removal) and the dashboard updates
+
+### Key Design: Follow-ups disappear when done
+
+Follow-ups are condition-based. When a follow-up's `ActionComponent` calls `onComplete`, it typically removes the effect that triggered it (e.g., `removeEffects: { [playerId]: ["pending_role_reveal"] }`). This causes the condition to become false, so the follow-up no longer appears in the list. This is consistent with how `dayActions` work — the Slayer bullet disappears after use.
+
+### Current Night Follow-Ups
+
+| Follow-Up | Effect | Trigger | Purpose |
+|-----------|--------|---------|---------|
+| Role Change Reveal | `pending_role_reveal` | Added by Scarlet Woman handler when Demon dies | Shows the player's new RoleCard so the narrator can reveal the role change |
+
+### The `pending_role_reveal` pattern
+
+This is a **generic, reusable effect** for any role change. Any effect handler that changes a player's role should add `pending_role_reveal` to that player:
+
+```typescript
+// In a handler's stateChanges:
+addEffects: {
+    [playerId]: [{ type: "pending_role_reveal", expiresAt: "never" }],
+},
+changeRoles: {
+    [playerId]: newRoleId,
+},
+```
+
+The `pending_role_reveal` effect's `nightFollowUp` has `condition: () => true` — if the effect exists, the reveal is needed. The follow-up's `ActionComponent` shows a RoleCard with "Your role has changed!" and creates a `role_change_revealed` history entry on completion.
+
+---
+
+## 10. Win Conditions
 
 Win conditions are checked at multiple points during the game.
 
@@ -591,7 +682,7 @@ type WinConditionCheck = {
 
 ---
 
-## 10. The Screen State Machine
+## 11. The Screen State Machine
 
 **File:** `src/components/screens/GameScreen.tsx`
 
@@ -600,31 +691,51 @@ type WinConditionCheck = {
 ### Screen Types
 
 ```
-narrator_prompt → role_reveal → handback
-                → night_action → handback
-night_waiting → (starts day)
+role_revelation → showing_role (tap player to show role card)
+night_dashboard → night_action (process a role's night action)
+                → night_follow_up (process a reactive follow-up, e.g., role change reveal)
+                → pipeline_input (when pipeline requests UI during night action resolution)
 day → nomination → voting
     → day_action
-    → pipeline_input (when pipeline requests UI)
+    → pipeline_input
 game_over
-grimoire_role_card (from grimoire modal)
+grimoire_role_card (from grimoire modal, returns to previous screen)
 ```
+
+### Night Dashboard Flow
+
+The Night Dashboard (`NightDashboard.tsx`) is the central hub for the night phase. It displays a unified list of:
+1. **Regular night actions** — from `getNightRolesStatus(game)` (roles with `nightOrder`)
+2. **Night follow-ups** — from `getAvailableNightFollowUps(state, game, t)` (reactive actions from effects)
+
+The list is ordered: regular actions first (by `nightOrder`), follow-ups appended at the end. Only the next pending item is clickable. `allDone` is derived from the combined list — no pending items means the narrator can proceed to day.
 
 ### Critical Flow: Night Action → Pipeline
 
 ```
-1. NightAction component calls onComplete(result)
-2. result stored as pendingNightActionResult
-3. Screen transitions to "handback" (device goes back to narrator)
-4. On handback complete:
-   a. applyNightAction(game, result) — applies direct changes
-   b. If result.intent exists:
-      - resolveIntent(intent, state, game) — runs pipeline
-      - processPipelineResult(result) handles the outcome:
-        * "resolved" → applyPipelineChanges() and advance
-        * "prevented" → applyPipelineChanges() and advance
-        * "needs_input" → show pipeline_input screen with UIComponent
-   c. If no intent: advance to next step
+1. Narrator taps next action in Night Dashboard
+2. Screen transitions to "night_action" with playerId + roleId
+3. NightAction component renders, narrator/player interacts
+4. NightAction calls onComplete(result)
+5. applyNightAction(game, result) — applies direct changes
+6. If result.intent exists:
+   - resolveIntent(intent, state, game) — runs pipeline
+   - processPipelineResult(result) handles the outcome:
+     * "resolved" → applyPipelineChanges(), check win, return to dashboard
+     * "prevented" → applyPipelineChanges(), check win, return to dashboard
+     * "needs_input" → show pipeline_input screen with UIComponent
+7. If no intent: check win, return to dashboard
+```
+
+### Night Follow-Up Flow
+
+```
+1. Narrator taps a follow-up item in Night Dashboard
+2. Screen transitions to "night_follow_up" with the AvailableNightFollowUp data
+3. The follow-up's ActionComponent renders (e.g., RoleCard for role change reveal)
+4. ActionComponent calls onComplete(result)
+5. Result is applied via applyPipelineChanges() (entries, effects)
+6. Screen returns to night_dashboard — follow-up disappears from list
 ```
 
 ### Pipeline Input Screen
@@ -638,7 +749,7 @@ When the pipeline returns `needs_input`:
 
 ---
 
-## 11. UI Components
+## 12. UI Components
 
 ### Component Hierarchy
 
@@ -647,7 +758,8 @@ atoms/     → Basic primitives: Button, Icon, Badge, Card, Dialog
 inputs/    → Form elements: PlayerSelector, SelectablePlayerItem, VoteButton
 items/     → Game-specific: Grimoire, RoleCard, EditEffectsModal, BounceRedirectUI
 layouts/   → Screen wrappers: NightActionLayout, NarratorSetupLayout
-screens/   → Full screens: GameScreen, DayPhase, VotingPhase, NominationScreen
+screens/   → Full screens: GameScreen, RoleRevelationScreen, NightDashboard,
+              DayPhase, VotingPhase, NominationScreen
 ```
 
 ### Layout Components
@@ -664,7 +776,7 @@ Icons are referenced by `IconName` string. The `Icon` component maps these to Lu
 
 ---
 
-## 12. Internationalization (i18n)
+## 13. Internationalization (i18n)
 
 **Files:** `src/lib/i18n/`
 
@@ -687,7 +799,7 @@ When adding a new role or effect, add translations in **both** `src/lib/i18n/tra
 
 ---
 
-## 13. How to Implement a New Role
+## 14. How to Implement a New Role
 
 ### Step-by-step
 
@@ -755,7 +867,7 @@ const definition: RoleDefinition = {
 
 ---
 
-## 14. How to Implement a New Effect
+## 15. How to Implement a New Effect
 
 ### Step-by-step
 
@@ -774,6 +886,8 @@ const definition: RoleDefinition = {
 | Redirect a kill to someone else | `handlers` with `intentType: "kill"`, return `{ action: "redirect" }` |
 | Need narrator input during pipeline | `handlers` returning `{ action: "request_ui" }` |
 | Give a player a day-phase ability | `dayActions` with condition + ActionComponent |
+| React to a night event with a follow-up action | `nightFollowUps` with condition + ActionComponent |
+| Show a role change reveal after transformation | Add `pending_role_reveal` effect (it has a built-in `nightFollowUp`) |
 | Create a custom win condition | `winConditions` with trigger + check |
 | Make a player register differently to info roles | `perceptionModifiers` |
 | Prevent a player from waking at night | `preventsNightWake: true` |
@@ -782,7 +896,7 @@ const definition: RoleDefinition = {
 
 ---
 
-## 15. How to Add a New Intent Type
+## 16. How to Add a New Intent Type
 
 If you need a new category of game action that should be interceptable:
 
@@ -804,7 +918,7 @@ If you need a new category of game action that should be interceptable:
 
 ---
 
-## 16. Testing
+## 17. Testing
 
 **Framework:** Vitest (integrated with Vite)
 
@@ -830,12 +944,13 @@ Tests are co-located with the files they test:
 ```
 src/lib/
 ├── __tests__/
-│   ├── helpers.ts           # Shared test utilities (makePlayer, makeState, etc.)
-│   ├── game.test.ts         # Game controller integration tests
-│   ├── pipeline.test.ts     # Intent pipeline integration tests
-│   ├── perception.test.ts   # Perception system tests
-│   ├── effects.test.ts      # Effect handler integration tests
-│   └── winConditions.test.ts # Win condition tests
+│   ├── helpers.ts              # Shared test utilities (makePlayer, makeState, etc.)
+│   ├── game.test.ts            # Game controller integration tests
+│   ├── pipeline.test.ts        # Intent pipeline integration tests
+│   ├── perception.test.ts      # Perception system tests
+│   ├── effects.test.ts         # Effect handler integration tests
+│   ├── winConditions.test.ts   # Win condition tests
+│   └── nightFollowUps.test.ts  # Night follow-up collection + integration tests
 ├── roles/definition/
 │   ├── Imp.test.ts
 │   └── trouble-brewing/
@@ -845,6 +960,7 @@ src/lib/
 └── effects/definition/
     ├── Safe.test.ts
     ├── Pure.test.ts
+    ├── PendingRoleReveal.test.ts
     └── ...
 ```
 
@@ -858,8 +974,9 @@ Tests must validate **features and behavior**, not definition metadata. Do not t
 | **Action roles** (Imp, Monk) | `shouldWake` conditions |
 | **Passive roles** (Soldier, Virgin, Slayer, Saint) | Nothing — just an empty test delegating to the corresponding effect test file |
 | **Role win conditions** (Mayor) | The `check` function with various game states (trigger conditions, edge cases) |
-| **Effect handlers** (Safe, Pure, Bounce) | `appliesTo` guard, `handle` logic (action type, stateChanges, history entries) |
+| **Effect handlers** (Safe, Pure, Bounce, ScarletWoman) | `appliesTo` guard, `handle` logic (action type, stateChanges, history entries) |
 | **Effect day actions** (SlayerBullet) | `condition` function (alive checks, effect presence) |
+| **Effect night follow-ups** (PendingRoleReveal) | `condition` function, metadata (id, icon), `ActionComponent` presence, integration with `getAvailableNightFollowUps()` |
 | **Effect win conditions** (Martyrdom) | `check` function with matching and non-matching history entries |
 | **Effect behavior flags** (Dead, UsedDeadVote) | `canVote`, `canNominate`, `preventsNightWake`, etc. |
 
@@ -941,7 +1058,7 @@ Tests run as a required step in the CI/CD pipeline (`.github/workflows/deploy.ym
 
 ---
 
-## 17. Rules and Anti-Patterns
+## 18. Rules and Anti-Patterns
 
 ### DO
 
@@ -961,7 +1078,7 @@ Tests run as a required step in the CI/CD pipeline (`.github/workflows/deploy.ym
 - **Never mutate state** — always return new objects. The event-sourced architecture depends on immutability.
 - **Never skip the pipeline for interceptable actions** — even if there are currently no handlers for an intent type, still use the pipeline. Future effects may need to intercept it.
 - **Never check `player.roleId` to determine team/alignment in info role logic** — always use `perceive()`. Direct checks bypass the perception system.
-- **Never hardcode effect checks in `GameScreen.tsx` or `DayPhase.tsx`** — use `getAvailableDayActions()` and `checkDynamicWinConditions()` instead.
+- **Never hardcode effect checks in `GameScreen.tsx`, `DayPhase.tsx`, or `NightDashboard.tsx`** — use `getAvailableDayActions()`, `getAvailableNightFollowUps()`, and `checkDynamicWinConditions()` instead.
 
 ### Handler Priority Guidelines
 

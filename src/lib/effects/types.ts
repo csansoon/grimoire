@@ -4,6 +4,7 @@ import { TeamId } from "../teams";
 import {
     IntentHandler,
     DayActionDefinition,
+    NightFollowUpDefinition,
     WinConditionCheck,
     PerceptionModifier,
 } from "../pipeline/types";
@@ -18,7 +19,8 @@ export type EffectId =
     | "bounce"
     | "martyrdom"
     | "scarlet_woman"
-    | "recluse_misregister";
+    | "recluse_misregister"
+    | "pending_role_reveal";
 
 export type EffectDefinition = {
     id: EffectId;
@@ -41,6 +43,10 @@ export type EffectDefinition = {
 
     // Day actions this effect enables (shown as buttons on the day phase)
     dayActions?: DayActionDefinition[];
+
+    // Night follow-ups this effect enables (shown as items in the Night Dashboard)
+    // Used for reactive behaviors like role change reveals
+    nightFollowUps?: NightFollowUpDefinition[];
 
     // Win conditions this effect contributes
     winConditions?: WinConditionCheck[];

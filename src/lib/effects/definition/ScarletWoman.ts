@@ -86,6 +86,11 @@ const scarletWomanHandler: IntentHandler = {
                 changeRoles: {
                     [effectPlayer.id]: target.roleId,
                 },
+                addEffects: {
+                    [effectPlayer.id]: [
+                        { type: "pending_role_reveal", expiresAt: "never" },
+                    ],
+                },
                 removeEffects: {
                     [effectPlayer.id]: ["scarlet_woman"],
                 },

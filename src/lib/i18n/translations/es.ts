@@ -211,6 +211,26 @@ const es: Translations = {
         handbackDescription:
             "Por favor, devuelve el dispositivo al Narrador antes de continuar.",
         narratorReady: "Narrador Listo",
+
+        // Role Revelation
+        roleRevelation: "Revelación de Roles",
+        roleRevelationDescription: "Toca cada jugador para mostrarle su rol",
+        tapToReveal: "Toca para revelar",
+        revealed: "Revelado",
+        startFirstNight: "Comenzar Noche 1",
+        skipRoleRevelation: "Omitir y revelar roles después",
+        revealAllFirst: "Revela todos los roles antes de continuar",
+
+        // Night Dashboard
+        night: "Noche",
+        nightDashboard: "Acciones Nocturnas",
+        nightDashboardDescription: "Procesa la acción nocturna de cada rol en orden",
+        nextAction: "Siguiente",
+        actionDone: "Hecho",
+        actionSkipped: "Omitido",
+        actionPending: "Pendiente",
+        allActionsComplete: "Todas las acciones nocturnas han sido procesadas",
+        proceedToDay: "Proceder al Día",
     },
 
     teams: {
@@ -441,6 +461,11 @@ const es: Translations = {
             name: "Registro Falso",
             description:
                 "Este jugador podría registrarse como malvado y como un Secuaz o Demonio ante habilidades de información.",
+        },
+        pending_role_reveal: {
+            name: "Rol Cambiado",
+            description:
+                "El rol de este jugador ha cambiado y necesita ser revelado.",
         },
     },
 

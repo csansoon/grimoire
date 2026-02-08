@@ -144,13 +144,16 @@ describe("ScarletWoman effect", () => {
             }
         });
 
-        it("removes the scarlet_woman effect", () => {
+        it("removes the scarlet_woman effect and adds pending_role_reveal", () => {
             const { sw, state, game } = makeScenario({ aliveCount: 6 });
             const intent: ExecuteIntent = { type: "execute", playerId: "demon", cause: "execution" };
 
             const result = handler.handle(intent, sw, state, game);
             if (result.action === "allow") {
                 expect(result.stateChanges?.removeEffects).toEqual({ sw: ["scarlet_woman"] });
+                expect(result.stateChanges?.addEffects).toEqual({
+                    sw: [{ type: "pending_role_reveal", expiresAt: "never" }],
+                });
             }
         });
 

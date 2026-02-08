@@ -204,6 +204,26 @@ const en: Translations = {
         handbackDescription:
             "Please return the device to the Narrator before continuing.",
         narratorReady: "Narrator Ready",
+
+        // Role Revelation
+        roleRevelation: "Role Revelation",
+        roleRevelationDescription: "Tap each player to show them their role",
+        tapToReveal: "Tap to reveal",
+        revealed: "Revealed",
+        startFirstNight: "Start Night 1",
+        skipRoleRevelation: "Skip and reveal roles later",
+        revealAllFirst: "Reveal all roles before continuing",
+
+        // Night Dashboard
+        night: "Night",
+        nightDashboard: "Night Actions",
+        nightDashboardDescription: "Process each role's night action in order",
+        nextAction: "Next",
+        actionDone: "Done",
+        actionSkipped: "Skipped",
+        actionPending: "Pending",
+        allActionsComplete: "All night actions have been processed",
+        proceedToDay: "Proceed to Day",
     },
 
     teams: {
@@ -432,6 +452,11 @@ const en: Translations = {
             name: "Misregister",
             description:
                 "This player might register as evil & as a Minion or Demon to information abilities.",
+        },
+        pending_role_reveal: {
+            name: "Role Changed",
+            description:
+                "This player's role has changed and needs to be revealed.",
         },
     },
 

@@ -4,6 +4,7 @@ import {
     PipelineResult,
     StateChanges,
     AvailableDayAction,
+    AvailableNightFollowUp,
     WinConditionTrigger,
 } from "./types";
 import {
@@ -438,6 +439,47 @@ export function getAvailableDayActions(
     }
 
     return actions;
+}
+
+// ============================================================================
+// NIGHT FOLLOW-UP COLLECTION
+// ============================================================================
+
+/**
+ * Collect all available night follow-ups from players' active effects.
+ * Modeled after getAvailableDayActions().
+ *
+ * Follow-ups appear as items in the Night Dashboard when their condition
+ * is met (e.g., a player has a pending role change to reveal).
+ */
+export function getAvailableNightFollowUps(
+    state: GameState,
+    game: Game,
+    t: Record<string, any>,
+): AvailableNightFollowUp[] {
+    const followUps: AvailableNightFollowUp[] = [];
+
+    for (const player of state.players) {
+        for (const effectInstance of player.effects) {
+            const effectDef = getEffect(effectInstance.type);
+            if (!effectDef?.nightFollowUps) continue;
+
+            for (const followUp of effectDef.nightFollowUps) {
+                if (followUp.condition(player, state, game)) {
+                    followUps.push({
+                        id: `${followUp.id}_${player.id}`,
+                        playerId: player.id,
+                        playerName: player.name,
+                        icon: followUp.icon,
+                        label: followUp.getLabel(t),
+                        ActionComponent: followUp.ActionComponent,
+                    });
+                }
+            }
+        }
+    }
+
+    return followUps;
 }
 
 // ============================================================================

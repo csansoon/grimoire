@@ -1,11 +1,9 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { Game, getCurrentState, getPlayer, PlayerState } from "../../lib/types";
 import { getRole } from "../../lib/roles";
 import { RoleCard } from "../items/RoleCard";
 import {
-    getNextStep,
     markRoleRevealed,
-    markRoleChangeRevealed,
     startNight,
     startDay,
     applyNightAction,
@@ -18,6 +16,7 @@ import {
     hasExecutionToday,
     addEffectToPlayer,
     removeEffectFromPlayer,
+    processAutoSkips,
 } from "../../lib/game";
 import {
     resolveIntent,
@@ -28,21 +27,22 @@ import {
     PipelineResult,
     PipelineInputProps,
     AvailableDayAction,
+    AvailableNightFollowUp,
+    NightFollowUpResult,
     DayActionResult,
 } from "../../lib/pipeline/types";
 import { saveGame } from "../../lib/storage";
-import { useI18n, interpolate } from "../../lib/i18n";
-import { NarratorPrompt } from "./NarratorPrompt";
+import { useI18n } from "../../lib/i18n";
+import { RoleRevelationScreen } from "./RoleRevelationScreen";
+import { NightDashboard } from "./NightDashboard";
 import { DayPhase } from "./DayPhase";
 import { NominationScreen } from "./NominationScreen";
 import { VotingPhase } from "./VotingPhase";
 import { GameOver } from "./GameOver";
 import { HistoryView } from "./HistoryView";
-import { HandbackScreen } from "./HandbackScreen";
 import { GrimoireModal } from "../items/GrimoireModal";
 import { EditEffectsModal } from "../items/EditEffectsModal";
-import { MysticDivider } from "../items";
-import { Button, Icon, LanguageToggle } from "../atoms";
+import { Icon, LanguageToggle } from "../atoms";
 import { NightActionResult } from "../../lib/roles/types";
 import type { FC } from "react";
 
@@ -52,12 +52,11 @@ type Props = {
 };
 
 type Screen =
-    | { type: "narrator_prompt"; playerId: string; action: "role_reveal" | "night_action" | "role_change" }
-    | { type: "role_reveal"; playerId: string }
-    | { type: "role_change_reveal"; playerId: string }
+    | { type: "role_revelation" }
+    | { type: "showing_role"; playerId: string }
+    | { type: "night_dashboard" }
     | { type: "night_action"; playerId: string; roleId: string }
-    | { type: "handback"; afterAction: "role_reveal" | "night_action" | "role_change"; playerId: string }
-    | { type: "night_waiting" }
+    | { type: "night_follow_up"; followUp: AvailableNightFollowUp }
     | { type: "day" }
     | { type: "nomination" }
     | { type: "day_action"; action: AvailableDayAction }
@@ -69,13 +68,13 @@ type Screen =
 export function GameScreen({ initialGame, onMainMenu }: Props) {
     const { t } = useI18n();
     const [game, setGame] = useState<Game>(initialGame);
-    const [screen, setScreen] = useState<Screen>(() => getInitialScreen(initialGame));
+    const [screen, setScreen] = useState<Screen>(() =>
+        getInitialScreen(initialGame),
+    );
     const [showHistory, setShowHistory] = useState(false);
     const [showGrimoire, setShowGrimoire] = useState(false);
-    const [editEffectsPlayer, setEditEffectsPlayer] = useState<PlayerState | null>(null);
-
-    // Store pending night action result to apply after handback
-    const pendingNightActionResult = useRef<NightActionResult | null>(null);
+    const [editEffectsPlayer, setEditEffectsPlayer] =
+        useState<PlayerState | null>(null);
 
     // Pipeline UI state — shown when an intent needs narrator input mid-resolution
     const [pipelineUI, setPipelineUI] = useState<{
@@ -96,198 +95,139 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
     // ========================================================================
 
     /**
-     * Process a pipeline result. If resolved/prevented, apply changes and advance.
+     * Process a pipeline result. If resolved/prevented, apply changes.
      * If needs_input, show the pipeline's UI component.
+     * Returns the updated game, or null if waiting for UI input.
      */
     const processPipelineResult = useCallback(
-        (result: PipelineResult, currentGame: Game) => {
+        (
+            result: PipelineResult,
+            currentGame: Game,
+            afterComplete: (updatedGame: Game) => void,
+        ) => {
             if (result.type === "resolved" || result.type === "prevented") {
-                const newGame = applyPipelineChanges(currentGame, result.stateChanges);
+                const newGame = applyPipelineChanges(
+                    currentGame,
+                    result.stateChanges,
+                );
                 updateGame(newGame);
                 setPipelineUI(null);
-
-                const winner = checkWinCondition(getCurrentState(newGame), newGame);
-                if (winner) {
-                    const finalGame = endGame(newGame, winner);
-                    updateGame(finalGame);
-                    setScreen({ type: "game_over" });
-                } else {
-                    advanceToNextStep(newGame);
-                }
+                afterComplete(newGame);
             } else if (result.type === "needs_input") {
-                // Pause — show the pipeline's UI and wait for narrator input
                 const resumeFn = result.resume;
                 setPipelineUI({
                     Component: result.UIComponent,
                     intent: result.intent,
                     onResult: (uiResult: unknown) => {
                         const resumed = resumeFn(uiResult);
-                        processPipelineResult(resumed, currentGame);
+                        processPipelineResult(
+                            resumed,
+                            currentGame,
+                            afterComplete,
+                        );
                     },
                 });
                 setScreen({ type: "pipeline_input" });
             }
         },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [updateGame]
+        [updateGame],
     );
 
     // ========================================================================
-    // GAME FLOW
+    // ROLE REVELATION FLOW
     // ========================================================================
 
-    const advanceToNextStep = useCallback((currentGame: Game) => {
-        const step = getNextStep(currentGame);
-
-        switch (step.type) {
-            case "role_reveal":
-                setScreen({
-                    type: "narrator_prompt",
-                    playerId: step.playerId,
-                    action: "role_reveal",
-                });
-                break;
-            case "role_change_reveal":
-                setScreen({
-                    type: "narrator_prompt",
-                    playerId: step.playerId,
-                    action: "role_change",
-                });
-                break;
-            case "night_action":
-                setScreen({
-                    type: "narrator_prompt",
-                    playerId: step.playerId,
-                    action: "night_action",
-                });
-                break;
-            case "night_action_skip": {
-                const skippedGame = applyNightAction(currentGame, {
-                    entries: [
-                        {
-                            type: "night_skipped",
-                            message: [],
-                            data: {
-                                roleId: step.roleId,
-                                playerId: step.playerId,
-                                reason: "should_wake_false",
-                            },
-                        },
-                    ],
-                });
-                updateGame(skippedGame);
-                advanceToNextStep(skippedGame);
-                break;
-            }
-            case "night_waiting":
-                setScreen({ type: "night_waiting" });
-                break;
-            case "day":
-                setScreen({ type: "day" });
-                break;
-            case "voting":
-                setScreen({ type: "voting", nomineeId: step.nomineeId });
-                break;
-            case "game_over":
-                const finalGame = endGame(currentGame, step.winner);
-                updateGame(finalGame);
-                setScreen({ type: "game_over" });
-                break;
-        }
-    }, [updateGame]);
-
-    // ========================================================================
-    // EVENT HANDLERS
-    // ========================================================================
-
-    const handleNarratorProceed = () => {
-        if (screen.type !== "narrator_prompt") return;
-
-        if (screen.action === "role_reveal") {
-            setScreen({ type: "role_reveal", playerId: screen.playerId });
-        } else if (screen.action === "role_change") {
-            setScreen({ type: "role_change_reveal", playerId: screen.playerId });
-        } else {
-            const player = getPlayer(state, screen.playerId);
-            if (player) {
-                setScreen({
-                    type: "night_action",
-                    playerId: screen.playerId,
-                    roleId: player.roleId,
-                });
-            }
-        }
+    const handleRevealRole = (playerId: string) => {
+        setScreen({ type: "showing_role", playerId });
     };
 
-    const handleRoleRevealComplete = () => {
-        if (screen.type !== "role_reveal") return;
-        setScreen({ type: "handback", afterAction: "role_reveal", playerId: screen.playerId });
+    const handleRoleRevealDismiss = () => {
+        if (screen.type !== "showing_role") return;
+
+        const newGame = markRoleRevealed(game, screen.playerId);
+        updateGame(newGame);
+        setScreen({ type: "role_revelation" });
     };
 
-    const handleRoleChangeRevealComplete = () => {
-        if (screen.type !== "role_change_reveal") return;
-        setScreen({ type: "handback", afterAction: "role_change", playerId: screen.playerId });
+    const handleStartFirstNight = () => {
+        const nightGame = startNight(game);
+        // Process auto-skips so the dashboard is ready
+        const readyGame = processAutoSkips(nightGame);
+        updateGame(readyGame);
+        setScreen({ type: "night_dashboard" });
+    };
+
+    // ========================================================================
+    // NIGHT DASHBOARD FLOW
+    // ========================================================================
+
+    const handleOpenNightAction = (playerId: string, roleId: string) => {
+        const player = getPlayer(state, playerId);
+        if (!player) return;
+
+        const role = getRole(roleId);
+        if (!role || !role.NightAction) {
+            // Role has no night action component — auto-skip
+            const newGame = skipNightAction(game, roleId, playerId);
+            const readyGame = processAutoSkips(newGame);
+            updateGame(readyGame);
+            setScreen({ type: "night_dashboard" });
+            return;
+        }
+
+        setScreen({ type: "night_action", playerId, roleId });
+    };
+
+    const handleOpenNightFollowUp = (followUp: AvailableNightFollowUp) => {
+        setScreen({ type: "night_follow_up", followUp });
     };
 
     const handleNightActionComplete = (result: NightActionResult) => {
         if (screen.type !== "night_action") return;
-        pendingNightActionResult.current = result;
-        setScreen({ type: "handback", afterAction: "night_action", playerId: screen.playerId });
-    };
 
-    const handleHandbackComplete = () => {
-        if (screen.type !== "handback") return;
+        // Apply direct entries/effects (not the intent)
+        const newGame = applyNightAction(game, result);
+        updateGame(newGame);
 
-        if (screen.afterAction === "role_reveal") {
-            const newGame = markRoleRevealed(game, screen.playerId);
-            updateGame(newGame);
-
-            const revealedCount = newGame.history.filter(
-                (e) => e.type === "role_revealed"
-            ).length;
-            const totalPlayers = state.players.length;
-
-            if (revealedCount >= totalPlayers) {
-                const nightGame = startNight(newGame);
-                updateGame(nightGame);
-                advanceToNextStep(nightGame);
-            } else {
-                advanceToNextStep(newGame);
-            }
-        } else if (screen.afterAction === "role_change") {
-            const newGame = markRoleChangeRevealed(game, screen.playerId);
-            updateGame(newGame);
-            advanceToNextStep(newGame);
-        } else if (screen.afterAction === "night_action") {
-            const result = pendingNightActionResult.current;
-            if (!result) {
-                advanceToNextStep(game);
-                return;
-            }
-
-            // Apply direct entries/effects (not the intent)
-            const newGame = applyNightAction(game, result);
-            updateGame(newGame);
-            pendingNightActionResult.current = null;
-
-            if (result.intent) {
-                // Resolve the intent through the pipeline
-                const pipelineResult = resolveIntent(
-                    result.intent,
-                    getCurrentState(newGame),
-                    newGame
+        if (result.intent) {
+            // Resolve the intent through the pipeline
+            const pipelineResult = resolveIntent(
+                result.intent,
+                getCurrentState(newGame),
+                newGame,
+            );
+            processPipelineResult(pipelineResult, newGame, (updatedGame) => {
+                // After pipeline resolution, check win conditions and return to dashboard
+                const winner = checkWinCondition(
+                    getCurrentState(updatedGame),
+                    updatedGame,
                 );
-                processPipelineResult(pipelineResult, newGame);
-            } else {
-                // No intent — standard flow
-                const winner = checkWinCondition(getCurrentState(newGame), newGame);
                 if (winner) {
-                    const finalGame = endGame(newGame, winner);
+                    const finalGame = endGame(updatedGame, winner);
                     updateGame(finalGame);
                     setScreen({ type: "game_over" });
                 } else {
-                    advanceToNextStep(newGame);
+                    // Process auto-skips and return to night dashboard
+                    const readyGame = processAutoSkips(updatedGame);
+                    updateGame(readyGame);
+                    setScreen({ type: "night_dashboard" });
                 }
+            });
+        } else {
+            // No intent — check win conditions and return to dashboard
+            const winner = checkWinCondition(
+                getCurrentState(newGame),
+                newGame,
+            );
+            if (winner) {
+                const finalGame = endGame(newGame, winner);
+                updateGame(finalGame);
+                setScreen({ type: "game_over" });
+            } else {
+                // Process auto-skips and return to night dashboard
+                const readyGame = processAutoSkips(newGame);
+                updateGame(readyGame);
+                setScreen({ type: "night_dashboard" });
             }
         }
     };
@@ -295,9 +235,14 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
     const handleNightActionSkip = () => {
         if (screen.type !== "night_action") return;
 
-        const newGame = skipNightAction(game, screen.roleId, screen.playerId);
-        updateGame(newGame);
-        advanceToNextStep(newGame);
+        const newGame = skipNightAction(
+            game,
+            screen.roleId,
+            screen.playerId,
+        );
+        const readyGame = processAutoSkips(newGame);
+        updateGame(readyGame);
+        setScreen({ type: "night_dashboard" });
     };
 
     const handleStartDay = () => {
@@ -313,6 +258,10 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
             setScreen({ type: "day" });
         }
     };
+
+    // ========================================================================
+    // DAY FLOW
+    // ========================================================================
 
     const handleOpenNomination = () => {
         setScreen({ type: "nomination" });
@@ -336,6 +285,55 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                 setScreen({ type: "day" });
             }
         }
+    };
+
+    const handleVoteComplete = (
+        votesFor: string[],
+        votesAgainst: string[],
+    ) => {
+        if (screen.type !== "voting") return;
+
+        const newGame = resolveVote(
+            game,
+            screen.nomineeId,
+            votesFor,
+            votesAgainst,
+        );
+        updateGame(newGame);
+
+        const winner = checkWinCondition(getCurrentState(newGame), newGame);
+        if (winner) {
+            const finalGame = endGame(newGame, winner);
+            updateGame(finalGame);
+            setScreen({ type: "game_over" });
+        } else {
+            setScreen({ type: "day" });
+        }
+    };
+
+    const handleEndDay = () => {
+        // Check dynamic end-of-day win conditions (e.g., Mayor's peaceful victory)
+        const endOfDayWinner = checkEndOfDayWinConditions(state, game);
+        if (endOfDayWinner) {
+            const finalGame = endGame(game, endOfDayWinner);
+            updateGame(finalGame);
+            setScreen({ type: "game_over" });
+            return;
+        }
+
+        const newGame = startNight(game);
+        // Process auto-skips so the dashboard is ready
+        const readyGame = processAutoSkips(newGame);
+        updateGame(readyGame);
+        setScreen({ type: "night_dashboard" });
+    };
+
+    const handleCancelVote = () => {
+        setScreen({ type: "day" });
+    };
+
+    const handleBackFromNomination = () => {
+        setScreen({ type: "day" });
     };
 
     // ========================================================================
@@ -370,6 +368,21 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
     };
 
     // ========================================================================
+    // NIGHT FOLLOW-UPS
+    // ========================================================================
+
+    const handleNightFollowUpComplete = (result: NightFollowUpResult) => {
+        const changes = {
+            entries: result.entries,
+            addEffects: result.addEffects,
+            removeEffects: result.removeEffects,
+        };
+        const newGame = applyPipelineChanges(game, changes);
+        updateGame(newGame);
+        setScreen({ type: "night_dashboard" });
+    };
+
+    // ========================================================================
     // OTHER HANDLERS
     // ========================================================================
 
@@ -381,7 +394,9 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         const newGame = addEffectToPlayer(game, playerId, effectType);
         updateGame(newGame);
         const updatedState = getCurrentState(newGame);
-        const updatedPlayer = updatedState.players.find(p => p.id === playerId);
+        const updatedPlayer = updatedState.players.find(
+            (p) => p.id === playerId,
+        );
         if (updatedPlayer) {
             setEditEffectsPlayer(updatedPlayer);
         }
@@ -391,49 +406,12 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
         const newGame = removeEffectFromPlayer(game, playerId, effectType);
         updateGame(newGame);
         const updatedState = getCurrentState(newGame);
-        const updatedPlayer = updatedState.players.find(p => p.id === playerId);
+        const updatedPlayer = updatedState.players.find(
+            (p) => p.id === playerId,
+        );
         if (updatedPlayer) {
             setEditEffectsPlayer(updatedPlayer);
         }
-    };
-
-    const handleVoteComplete = (votesFor: string[], votesAgainst: string[]) => {
-        if (screen.type !== "voting") return;
-
-        const newGame = resolveVote(game, screen.nomineeId, votesFor, votesAgainst);
-        updateGame(newGame);
-
-        const winner = checkWinCondition(getCurrentState(newGame), newGame);
-        if (winner) {
-            const finalGame = endGame(newGame, winner);
-            updateGame(finalGame);
-            setScreen({ type: "game_over" });
-        } else {
-            setScreen({ type: "day" });
-        }
-    };
-
-    const handleEndDay = () => {
-        // Check dynamic end-of-day win conditions (e.g., Mayor's peaceful victory)
-        const endOfDayWinner = checkEndOfDayWinConditions(state, game);
-        if (endOfDayWinner) {
-            const finalGame = endGame(game, endOfDayWinner);
-            updateGame(finalGame);
-            setScreen({ type: "game_over" });
-            return;
-        }
-
-        const newGame = startNight(game);
-        updateGame(newGame);
-        advanceToNextStep(newGame);
-    };
-
-    const handleCancelVote = () => {
-        setScreen({ type: "day" });
-    };
-
-    const handleBackFromNomination = () => {
-        setScreen({ type: "day" });
     };
 
     const handleShowRoleCard = (player: PlayerState) => {
@@ -458,7 +436,10 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
     if (showHistory) {
         return (
             <div className="relative">
-                <HistoryView game={game} onClose={() => setShowHistory(false)} />
+                <HistoryView
+                    game={game}
+                    onClose={() => setShowHistory(false)}
+                />
                 <div className="fixed top-4 right-4 z-50">
                     <LanguageToggle variant="floating" />
                 </div>
@@ -468,20 +449,18 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
 
     const renderScreen = () => {
         switch (screen.type) {
-            case "narrator_prompt": {
-                const player = getPlayer(state, screen.playerId);
-                if (!player) return null;
+            case "role_revelation":
                 return (
-                    <NarratorPrompt
-                        player={player}
-                        action={screen.action}
-                        onProceed={handleNarratorProceed}
+                    <RoleRevelationScreen
+                        game={game}
+                        state={state}
+                        onRevealRole={handleRevealRole}
+                        onStartNight={handleStartFirstNight}
                         onMainMenu={onMainMenu}
                     />
                 );
-            }
 
-            case "role_reveal": {
+            case "showing_role": {
                 const player = getPlayer(state, screen.playerId);
                 if (!player) return null;
                 const role = getRole(player.roleId);
@@ -490,20 +469,33 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                 return (
                     <role.RoleReveal
                         player={player}
-                        onContinue={handleRoleRevealComplete}
+                        onContinue={handleRoleRevealDismiss}
                     />
                 );
             }
 
-            case "role_change_reveal": {
-                const player = getPlayer(state, screen.playerId);
-                if (!player) return null;
-
+            case "night_dashboard":
                 return (
-                    <RoleCard
-                        player={player}
-                        headerMessage={t.game.yourRoleHasChanged}
-                        onContinue={handleRoleChangeRevealComplete}
+                    <NightDashboard
+                        game={game}
+                        state={state}
+                        onOpenNightAction={handleOpenNightAction}
+                        onOpenNightFollowUp={handleOpenNightFollowUp}
+                        onStartDay={handleStartDay}
+                        onMainMenu={onMainMenu}
+                        onShowRoleCard={handleShowRoleCard}
+                        onEditEffects={handleOpenEditEffects}
+                    />
+                );
+
+            case "night_follow_up": {
+                const FollowUpComponent = screen.followUp.ActionComponent;
+                return (
+                    <FollowUpComponent
+                        state={state}
+                        game={game}
+                        playerId={screen.followUp.playerId}
+                        onComplete={handleNightFollowUpComplete}
                     />
                 );
             }
@@ -528,55 +520,6 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                     />
                 );
             }
-
-            case "handback":
-                return (
-                    <HandbackScreen onContinue={handleHandbackComplete} />
-                );
-
-            case "night_waiting":
-                return (
-                    <div className="min-h-app bg-gradient-to-b from-indigo-950 via-grimoire-purple to-grimoire-darker flex flex-col">
-                        <div className="px-4 py-4">
-                            <button
-                                onClick={onMainMenu}
-                                className="flex items-center gap-1 p-2 -ml-2 text-parchment-400 hover:text-parchment-100 transition-colors"
-                            >
-                                <Icon name="arrowLeft" size="md" />
-                                <span className="text-xs">{t.common.mainMenu}</span>
-                            </button>
-                        </div>
-
-                        <div className="flex-1 flex items-center justify-center p-4">
-                            <div className="max-w-sm w-full text-center">
-                                <div className="mb-8">
-                                    <div className="w-24 h-24 mx-auto rounded-full bg-indigo-500/10 border border-indigo-400/30 flex items-center justify-center">
-                                        <Icon name="moon" size="3xl" className="text-indigo-400" />
-                                    </div>
-                                </div>
-
-                                <h1 className="font-tarot text-2xl text-parchment-100 tracking-wider uppercase mb-2">
-                                    {interpolate(t.game.nightComplete, { round: state.round })}
-                                </h1>
-                                <p className="text-parchment-400 text-sm mb-8">
-                                    {t.game.nightActionsResolved}
-                                </p>
-
-                                <MysticDivider className="mb-8" iconClassName="text-indigo-400/40" />
-
-                                <Button
-                                    onClick={handleStartDay}
-                                    fullWidth
-                                    size="lg"
-                                    className="bg-gradient-to-r from-amber-500 to-orange-600 text-grimoire-dark font-tarot uppercase tracking-wider"
-                                >
-                                    <Icon name="sun" size="md" className="mr-2" />
-                                    {t.game.startDay}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                );
 
             case "day": {
                 // Collect available day actions from active effects
@@ -652,7 +595,13 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                 );
 
             case "game_over":
-                return <GameOver state={state} onMainMenu={onMainMenu} onShowHistory={() => setShowHistory(true)} />;
+                return (
+                    <GameOver
+                        state={state}
+                        onMainMenu={onMainMenu}
+                        onShowHistory={() => setShowHistory(true)}
+                    />
+                );
 
             default:
                 return null;
@@ -661,13 +610,13 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
 
     // Determine which floating buttons to show
     const isPlayerFacingScreen =
-        screen.type === "role_reveal" ||
-        screen.type === "role_change_reveal" ||
+        screen.type === "showing_role" ||
+        screen.type === "night_follow_up" ||
         screen.type === "night_action" ||
-        screen.type === "grimoire_role_card" ||
-        screen.type === "handback";
+        screen.type === "grimoire_role_card";
 
-    const showFloatingButtons = !isPlayerFacingScreen && screen.type !== "game_over";
+    const showFloatingButtons =
+        !isPlayerFacingScreen && screen.type !== "game_over";
 
     return (
         <div className="relative">
@@ -721,40 +670,41 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
 }
 
 function getInitialScreen(game: Game): Screen {
-    const step = getNextStep(game);
+    const state = getCurrentState(game);
 
-    switch (step.type) {
-        case "role_reveal":
-            return {
-                type: "narrator_prompt",
-                playerId: step.playerId,
-                action: "role_reveal",
-            };
-        case "role_change_reveal":
-            return {
-                type: "narrator_prompt",
-                playerId: step.playerId,
-                action: "role_change",
-            };
-        case "night_action":
-            return {
-                type: "narrator_prompt",
-                playerId: step.playerId,
-                action: "night_action",
-            };
-        case "night_action_skip":
-            return { type: "night_waiting" };
-        case "night_waiting":
-            return { type: "night_waiting" };
+    // Check win conditions
+    if (state.phase === "ended") {
+        return { type: "game_over" };
+    }
+
+    if (state.phase !== "setup") {
+        const winner = checkWinCondition(state, game);
+        if (winner) {
+            return { type: "game_over" };
+        }
+    }
+
+    switch (state.phase) {
+        case "setup":
+            return { type: "role_revelation" };
+        case "night":
+            return { type: "night_dashboard" };
+        case "voting": {
+            // Find the nominee from the last nomination
+            const lastNomination = [...game.history]
+                .reverse()
+                .find((e) => e.type === "nomination");
+            if (lastNomination) {
+                return {
+                    type: "voting",
+                    nomineeId: lastNomination.data.nomineeId as string,
+                };
+            }
+            return { type: "day" };
+        }
         case "day":
             return { type: "day" };
-        case "voting":
-            return { type: "voting", nomineeId: step.nomineeId };
-        case "game_over":
-            return { type: "game_over" };
-        default: {
-            const _exhaustive: never = step;
-            return _exhaustive;
-        }
+        default:
+            return { type: "day" };
     }
 }

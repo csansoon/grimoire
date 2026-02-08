@@ -199,6 +199,26 @@ export type Translations = {
         handbackToNarrator: string;
         handbackDescription: string;
         narratorReady: string;
+
+        // Role Revelation
+        roleRevelation: string;
+        roleRevelationDescription: string;
+        tapToReveal: string;
+        revealed: string;
+        startFirstNight: string;
+        skipRoleRevelation: string;
+        revealAllFirst: string;
+
+        // Night Dashboard
+        night: string;
+        nightDashboard: string;
+        nightDashboardDescription: string;
+        nextAction: string;
+        actionDone: string;
+        actionSkipped: string;
+        actionPending: string;
+        allActionsComplete: string;
+        proceedToDay: string;
     };
 
     // Teams
@@ -386,6 +406,10 @@ export type Translations = {
             description: string;
         };
         recluse_misregister: {
+            name: string;
+            description: string;
+        };
+        pending_role_reveal: {
             name: string;
             description: string;
         };

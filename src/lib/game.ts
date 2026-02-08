@@ -174,7 +174,6 @@ export function addHistoryEntry(
 
 export type GameStep =
     | { type: "role_reveal"; playerId: string }
-    | { type: "role_change_reveal"; playerId: string }
     | { type: "night_action"; playerId: string; roleId: string }
     | { type: "night_action_skip"; playerId: string; roleId: string }
     | { type: "night_waiting" }
@@ -209,23 +208,6 @@ export function getNextStep(game: Game): GameStep {
     }
 
     if (state.phase === "night") {
-        // Check for unrevealed role changes before night actions
-        // (e.g., Scarlet Woman became the Demon during execution/kill)
-        const roleChangedPlayers = game.history
-            .filter((e) => e.type === "role_changed")
-            .map((e) => e.data.playerId as string);
-        const roleChangeRevealedPlayers = new Set(
-            game.history
-                .filter((e) => e.type === "role_change_revealed")
-                .map((e) => e.data.playerId as string),
-        );
-        const unrevealedChange = roleChangedPlayers.find(
-            (pid) => !roleChangeRevealedPlayers.has(pid),
-        );
-        if (unrevealedChange) {
-            return { type: "role_change_reveal", playerId: unrevealedChange };
-        }
-
         // Find which roles have acted this night
         const nightStartIndex = findLastEventIndex(game, "night_started");
         const actedRoles = game.history
@@ -399,23 +381,9 @@ export function markRoleRevealed(game: Game, playerId: string): Game {
     });
 }
 
-export function markRoleChangeRevealed(game: Game, playerId: string): Game {
-    const state = getCurrentState(game);
-    const player = state.players.find((p) => p.id === playerId);
-    if (!player) return game;
-
-    return addHistoryEntry(game, {
-        type: "role_change_revealed",
-        message: [
-            {
-                type: "i18n",
-                key: "history.roleChanged",
-                params: { player: playerId, role: player.roleId },
-            },
-        ],
-        data: { playerId, roleId: player.roleId },
-    });
-}
+// markRoleChangeRevealed is no longer needed here — role change reveals
+// are now handled as night follow-ups via the pending_role_reveal effect.
+// The follow-up's ActionComponent creates the role_change_revealed entry.
 
 export function applyNightAction(game: Game, result: NightActionResult): Game {
     let updatedGame = game;
@@ -655,6 +623,98 @@ export function endGame(game: Game, winner: "townsfolk" | "demon"): Game {
         },
         { phase: "ended", winner },
     );
+}
+
+// ============================================================================
+// NIGHT DASHBOARD HELPERS
+// ============================================================================
+
+export type NightRoleStatus = {
+    roleId: string;
+    playerId: string;
+    playerName: string;
+    status: "pending" | "done";
+};
+
+/**
+ * Get the status of night roles that actually need to wake this night.
+ * Roles that were auto-skipped (shouldWake returned false) are excluded.
+ * Returns roles in night order with their current status.
+ *
+ * Note: reactive follow-ups (like role change reveals) are NOT included here.
+ * Those are collected separately via getAvailableNightFollowUps() in the
+ * pipeline module and merged by the NightDashboard UI.
+ */
+export function getNightRolesStatus(game: Game): NightRoleStatus[] {
+    const state = getCurrentState(game);
+    const nightRoles = getNightOrderRoles();
+
+    const nightStartIndex = findLastEventIndex(game, "night_started");
+    const actedEntries = game.history
+        .slice(nightStartIndex + 1)
+        .filter(
+            (e) => e.type === "night_action" || e.type === "night_skipped",
+        );
+
+    const result: NightRoleStatus[] = [];
+
+    for (const role of nightRoles) {
+        const player = state.players.find((p) => p.roleId === role.id);
+        if (!player) continue;
+
+        const entry = actedEntries.find(
+            (e) => e.data.roleId === role.id,
+        );
+
+        if (entry) {
+            // Already processed — only include if it actually acted (not skipped)
+            if (entry.type === "night_action") {
+                result.push({
+                    roleId: role.id,
+                    playerId: player.id,
+                    playerName: player.name,
+                    status: "done",
+                });
+            }
+            // night_skipped entries are simply not included
+        } else {
+            // Not yet processed — only include if shouldWake passes
+            const shouldWake =
+                !role.shouldWake || role.shouldWake(game, player);
+            if (shouldWake) {
+                result.push({
+                    roleId: role.id,
+                    playerId: player.id,
+                    playerName: player.name,
+                    status: "pending",
+                });
+            }
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Process all auto-skippable night actions from the current position.
+ * Returns the updated game with skipped entries applied.
+ * Stops when it hits a role that needs manual action or all are done.
+ */
+export function processAutoSkips(game: Game): Game {
+    let updatedGame = game;
+    while (true) {
+        const step = getNextStep(updatedGame);
+        if (step.type === "night_action_skip") {
+            updatedGame = skipNightAction(
+                updatedGame,
+                step.roleId,
+                step.playerId,
+            );
+        } else {
+            break;
+        }
+    }
+    return updatedGame;
 }
 
 // ============================================================================

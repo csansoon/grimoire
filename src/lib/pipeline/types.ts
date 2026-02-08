@@ -136,6 +136,59 @@ export type AvailableDayAction = {
 };
 
 // ============================================================================
+// NIGHT FOLLOW-UPS
+// ============================================================================
+
+/**
+ * Props for a night follow-up's action component.
+ * Similar to DayActionProps but includes game context for history checks.
+ */
+export type NightFollowUpProps = {
+    state: GameState;
+    game: Game;
+    playerId: string;
+    onComplete: (result: NightFollowUpResult) => void;
+};
+
+/**
+ * Result of a night follow-up action.
+ * Applied the same way as DayActionResult — entries and effect changes.
+ */
+export type NightFollowUpResult = {
+    entries: Omit<HistoryEntry, "id" | "timestamp" | "stateAfter">[];
+    addEffects?: Record<string, EffectToAdd[]>;
+    removeEffects?: Record<string, string[]>;
+};
+
+/**
+ * Defines a follow-up action that can be triggered during the night phase
+ * by an effect. Modeled after DayActionDefinition.
+ *
+ * Follow-ups appear as items in the Night Dashboard when their condition
+ * is met. They are used for reactive behaviors like role change reveals
+ * (e.g., Scarlet Woman becoming the Demon after the Imp kills itself).
+ */
+export type NightFollowUpDefinition = {
+    id: string;
+    icon: IconName;
+    getLabel: (t: Record<string, any>) => string;
+    condition: (player: PlayerState, state: GameState, game: Game) => boolean;
+    ActionComponent: FC<NightFollowUpProps>;
+};
+
+/**
+ * A resolved night follow-up ready for the UI.
+ */
+export type AvailableNightFollowUp = {
+    id: string;
+    playerId: string;
+    playerName: string;
+    icon: IconName;
+    label: string;
+    ActionComponent: FC<NightFollowUpProps>;
+};
+
+// ============================================================================
 // WIN CONDITIONS
 // ============================================================================
 

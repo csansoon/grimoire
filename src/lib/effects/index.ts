@@ -9,6 +9,7 @@ import Bounce from "./definition/Bounce";
 import Martyrdom from "./definition/Martyrdom";
 import ScarletWoman from "./definition/ScarletWoman";
 import RecluseMisregister from "./definition/RecluseMisregister";
+import PendingRoleReveal from "./definition/PendingRoleReveal";
 
 export const EFFECTS: Record<EffectId, EffectDefinition> = {
     dead: Dead,
@@ -21,6 +22,7 @@ export const EFFECTS: Record<EffectId, EffectDefinition> = {
     martyrdom: Martyrdom,
     scarlet_woman: ScarletWoman,
     recluse_misregister: RecluseMisregister,
+    pending_role_reveal: PendingRoleReveal,
 };
 
 export function getEffect(effectId: string): EffectDefinition | undefined {
