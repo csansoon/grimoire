@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import definition from "./Dead";
-import { makePlayer, addEffectTo, resetPlayerCounter } from "../../__tests__/helpers";
+import { makePlayer, makeState, addEffectTo, resetPlayerCounter } from "../../__tests__/helpers";
 
 beforeEach(() => resetPlayerCounter());
 
@@ -30,13 +30,15 @@ describe("Dead effect", () => {
     describe("canVote", () => {
         it("dead player can vote once (no used_dead_vote yet)", () => {
             const player = addEffectTo(makePlayer({ id: "p1" }), "dead");
-            expect(definition.canVote!(player)).toBe(true);
+            const state = makeState({ players: [player] });
+            expect(definition.canVote!(player, state)).toBe(true);
         });
 
         it("dead player cannot vote after using dead vote", () => {
             let player = addEffectTo(makePlayer({ id: "p1" }), "dead");
             player = addEffectTo(player, "used_dead_vote");
-            expect(definition.canVote!(player)).toBe(false);
+            const state = makeState({ players: [player] });
+            expect(definition.canVote!(player, state)).toBe(false);
         });
     });
 
@@ -47,7 +49,8 @@ describe("Dead effect", () => {
     describe("canNominate", () => {
         it("dead player can never nominate", () => {
             const player = addEffectTo(makePlayer({ id: "p1" }), "dead");
-            expect(definition.canNominate!(player)).toBe(false);
+            const state = makeState({ players: [player] });
+            expect(definition.canNominate!(player, state)).toBe(false);
         });
     });
 });

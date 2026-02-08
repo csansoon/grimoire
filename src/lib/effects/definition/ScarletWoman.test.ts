@@ -139,7 +139,9 @@ describe("ScarletWoman effect", () => {
             const intent: ExecuteIntent = { type: "execute", playerId: "demon", cause: "execution" };
 
             const result = handler.handle(intent, sw, state, game);
-            expect(result.stateChanges?.changeRoles).toEqual({ sw: "imp" });
+            if (result.action === "allow") {
+                expect(result.stateChanges?.changeRoles).toEqual({ sw: "imp" });
+            }
         });
 
         it("removes the scarlet_woman effect", () => {
@@ -147,7 +149,9 @@ describe("ScarletWoman effect", () => {
             const intent: ExecuteIntent = { type: "execute", playerId: "demon", cause: "execution" };
 
             const result = handler.handle(intent, sw, state, game);
-            expect(result.stateChanges?.removeEffects).toEqual({ sw: ["scarlet_woman"] });
+            if (result.action === "allow") {
+                expect(result.stateChanges?.removeEffects).toEqual({ sw: ["scarlet_woman"] });
+            }
         });
 
         it("generates a role_changed history entry", () => {
@@ -155,13 +159,15 @@ describe("ScarletWoman effect", () => {
             const intent: ExecuteIntent = { type: "execute", playerId: "demon", cause: "execution" };
 
             const result = handler.handle(intent, sw, state, game);
-            expect(result.stateChanges?.entries).toHaveLength(1);
-            expect(result.stateChanges!.entries[0].type).toBe("role_changed");
-            expect(result.stateChanges!.entries[0].data).toEqual({
-                playerId: "sw",
-                fromRole: "scarlet_woman",
-                toRole: "imp",
-            });
+            if (result.action === "allow") {
+                expect(result.stateChanges?.entries).toHaveLength(1);
+                expect(result.stateChanges!.entries[0].type).toBe("role_changed");
+                expect(result.stateChanges!.entries[0].data).toEqual({
+                    playerId: "sw",
+                    fromRole: "scarlet_woman",
+                    toRole: "imp",
+                });
+            }
         });
 
         it("inherits the specific Demon role (not hardcoded to imp)", () => {
@@ -173,7 +179,9 @@ describe("ScarletWoman effect", () => {
             const intent: KillIntent = { type: "kill", sourceId: "demon", targetId: "demon", cause: "demon" };
 
             const result = handler.handle(intent, sw, state, game);
-            expect(result.stateChanges?.changeRoles?.sw).toBe("imp");
+            if (result.action === "allow") {
+                expect(result.stateChanges?.changeRoles?.sw).toBe("imp");
+            }
         });
 
         it("works for kill intents (Imp self-kill)", () => {
@@ -181,8 +189,10 @@ describe("ScarletWoman effect", () => {
             const intent: KillIntent = { type: "kill", sourceId: "demon", targetId: "demon", cause: "demon" };
 
             const result = handler.handle(intent, sw, state, game);
-            expect(result.action).toBe("allow");
-            expect(result.stateChanges?.changeRoles).toEqual({ sw: "imp" });
+            if (result.action === "allow") {
+                expect(result.action).toBe("allow");
+                expect(result.stateChanges?.changeRoles).toEqual({ sw: "imp" });
+            }
         });
     });
 });

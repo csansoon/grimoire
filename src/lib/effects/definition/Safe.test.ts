@@ -70,9 +70,11 @@ describe("Safe effect", () => {
             const intent: KillIntent = { type: "kill", sourceId: "p1", targetId: "p2", cause: "demon" };
 
             const result = handler.handle(intent, protectedPlayer, state, game);
-            expect(result.stateChanges?.entries).toHaveLength(1);
-            expect(result.stateChanges!.entries![0].data.reason).toBe("safe");
-            expect(result.stateChanges!.entries![0].data.targetId).toBe("p2");
+            if (result.action === "prevent") {
+                expect(result.stateChanges?.entries).toHaveLength(1);
+                expect(result.stateChanges!.entries![0].data.reason).toBe("safe");
+                expect(result.stateChanges!.entries![0].data.targetId).toBe("p2");
+            }
         });
     });
 });

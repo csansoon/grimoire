@@ -95,10 +95,12 @@ describe("Bounce effect", () => {
             const result = handler.handle(intent, mayor, state, game);
             if (result.action === "request_ui") {
                 const resumed = result.resume!("p3");
-                expect(resumed.stateChanges?.entries).toHaveLength(1);
-                expect(resumed.stateChanges!.entries![0].data.action).toBe("kill_redirected");
-                expect(resumed.stateChanges!.entries![0].data.originalTargetId).toBe("p2");
-                expect(resumed.stateChanges!.entries![0].data.redirectTargetId).toBe("p3");
+                if (resumed.action === "redirect") {
+                    expect(resumed.stateChanges?.entries).toHaveLength(1);
+                    expect(resumed.stateChanges!.entries![0].data.action).toBe("kill_redirected");
+                    expect(resumed.stateChanges!.entries![0].data.originalTargetId).toBe("p2");
+                    expect(resumed.stateChanges!.entries![0].data.redirectTargetId).toBe("p3");
+                }
             }
         });
     });

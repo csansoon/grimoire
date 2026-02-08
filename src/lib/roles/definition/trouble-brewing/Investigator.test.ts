@@ -92,8 +92,6 @@ describe("Investigator", () => {
                 id: "p1",
                 roleId: "investigator",
             });
-            // Using imp as minion-like for test (in a real setup there'd be a minion role)
-            const state = makeState({ players: [investigator] });
 
             // Imp is demon, not minion
             const imp = makePlayer({ id: "p2", roleId: "imp" });
