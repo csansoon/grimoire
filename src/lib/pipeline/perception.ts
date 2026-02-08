@@ -1,7 +1,7 @@
 import { GameState, PlayerState } from "../types";
 import { getRole } from "../roles/index";
 import { getEffect } from "../effects";
-import { isEvilTeam } from "../teams";
+import { isEvilTeam, TeamId } from "../teams";
 import { Perception, PerceptionContext } from "./types";
 
 /**
@@ -23,7 +23,7 @@ export function perceive(
     targetPlayer: PlayerState,
     observerPlayer: PlayerState,
     context: PerceptionContext,
-    state: GameState
+    state: GameState,
 ): Perception {
     const role = getRole(targetPlayer.roleId);
     const team = role?.team ?? "townsfolk";
@@ -58,10 +58,29 @@ export function perceive(
                 targetPlayer,
                 observerPlayer,
                 state,
-                effectInstance.data
+                effectInstance.data,
             );
         }
     }
 
     return perception;
+}
+
+/**
+ * Check whether a player could potentially register as a given team.
+ *
+ * Returns true if the player has any active effect whose `canRegisterAs.teams`
+ * includes the target team. This is used by narrator-setup UIs (e.g., Investigator)
+ * to allow players with misregistration effects (e.g., Recluse) as valid picks
+ * without requiring the narrator to pre-configure the effect's perceiveAs data.
+ *
+ * This does NOT check the player's actual team or current perception — use
+ * `perceive()` for that. This only checks static declarations on effects.
+ */
+export function canRegisterAsTeam(player: PlayerState, team: TeamId): boolean {
+    for (const effectInstance of player.effects) {
+        const effectDef = getEffect(effectInstance.type);
+        if (effectDef?.canRegisterAs?.teams?.includes(team)) return true;
+    }
+    return false;
 }

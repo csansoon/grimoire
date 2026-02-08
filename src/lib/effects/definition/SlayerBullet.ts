@@ -8,7 +8,8 @@ const slayerDayAction: DayActionDefinition = {
     icon: "crosshair",
     getLabel: (t) => t.game.slayerAction,
     getDescription: (t) => t.game.slayerActionDescription,
-    condition: (player) => isAlive(player) && hasEffect(player, "slayer_bullet"),
+    condition: (player) =>
+        isAlive(player) && hasEffect(player, "slayer_bullet"),
     ActionComponent: SlayerActionScreen,
 };
 

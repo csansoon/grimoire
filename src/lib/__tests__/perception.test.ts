@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { perceive } from "../pipeline/perception";
-import { makePlayer, makeState, addEffectTo, resetPlayerCounter } from "./helpers";
+import { perceive, canRegisterAsTeam } from "../pipeline/perception";
+import {
+    makePlayer,
+    makeState,
+    addEffectTo,
+    resetPlayerCounter,
+} from "./helpers";
 import { PerceptionModifier, Perception } from "../pipeline/types";
 import { EffectDefinition, EffectId } from "../effects/types";
 
@@ -16,7 +21,9 @@ vi.mock("../effects", async (importOriginal) => {
                 return testEffectRegistry[effectId];
             }
             // Fall back to real registry
-            return (actual.getEffect as (id: string) => EffectDefinition | undefined)(effectId);
+            return (
+                actual.getEffect as (id: string) => EffectDefinition | undefined
+            )(effectId);
         },
     };
 });
@@ -90,7 +97,7 @@ describe("base perception", () => {
     it("returns base perception for player with effects that have no modifiers", () => {
         const target = addEffectTo(
             makePlayer({ id: "p1", roleId: "soldier" }),
-            "safe"
+            "safe",
         );
         const observer = makePlayer({ id: "p2", roleId: "empath" });
         const state = makeState({ players: [target, observer] });
@@ -123,7 +130,7 @@ describe("perception modifiers", () => {
 
         const target = addEffectTo(
             makePlayer({ id: "p1", roleId: "saint" }),
-            "misregister"
+            "misregister",
         );
         const observer = makePlayer({ id: "p2", roleId: "chef" });
         const state = makeState({ players: [target, observer] });
@@ -153,7 +160,7 @@ describe("perception modifiers", () => {
 
         const target = addEffectTo(
             makePlayer({ id: "p1", roleId: "saint" }),
-            "misregister"
+            "misregister",
         );
         const observer = makePlayer({ id: "p2", roleId: "washerwoman" });
         const state = makeState({ players: [target, observer] });
@@ -182,7 +189,7 @@ describe("perception modifiers", () => {
 
         const target = addEffectTo(
             makePlayer({ id: "p1", roleId: "saint" }),
-            "misregister"
+            "misregister",
         );
         const observer = makePlayer({ id: "p2", roleId: "chef" });
         const state = makeState({ players: [target, observer] });
@@ -218,7 +225,7 @@ describe("perception modifiers", () => {
 
         const target = addEffectTo(
             makePlayer({ id: "p1", roleId: "saint" }),
-            "misregister"
+            "misregister",
         );
         const chef = makePlayer({ id: "p2", roleId: "chef" });
         const empath = makePlayer({ id: "p3", roleId: "empath" });
@@ -247,7 +254,10 @@ describe("perception modifiers", () => {
             modify: (perception) => ({
                 ...perception,
                 // This should see team as "minion" from the first modifier
-                alignment: perception.team === "minion" ? "evil" : perception.alignment,
+                alignment:
+                    perception.team === "minion"
+                        ? "evil"
+                        : perception.alignment,
             }),
         };
 
@@ -259,7 +269,7 @@ describe("perception modifiers", () => {
 
         const target = addEffectTo(
             makePlayer({ id: "p1", roleId: "saint" }),
-            "misregister"
+            "misregister",
         );
         const observer = makePlayer({ id: "p2", roleId: "undertaker" });
         const state = makeState({ players: [target, observer] });
@@ -290,7 +300,7 @@ describe("perception modifiers", () => {
         const target = addEffectTo(
             makePlayer({ id: "p1", roleId: "saint" }),
             "misregister",
-            { perceiveAs: { team: "demon", alignment: "evil", roleId: "imp" } }
+            { perceiveAs: { team: "demon", alignment: "evil", roleId: "imp" } },
         );
         const observer = makePlayer({ id: "p2", roleId: "investigator" });
         const state = makeState({ players: [target, observer] });
@@ -299,5 +309,63 @@ describe("perception modifiers", () => {
         expect(result.team).toBe("demon");
         expect(result.alignment).toBe("evil");
         expect(result.roleId).toBe("imp");
+    });
+});
+
+// ============================================================================
+// CAN REGISTER AS TEAM
+// ============================================================================
+
+describe("canRegisterAsTeam", () => {
+    it("returns false for a player with no effects", () => {
+        const player = makePlayer({ id: "p1", roleId: "villager" });
+        expect(canRegisterAsTeam(player, "minion")).toBe(false);
+    });
+
+    it("returns false for a player with effects that don't declare canRegisterAs", () => {
+        const player = addEffectTo(
+            makePlayer({ id: "p1", roleId: "soldier" }),
+            "safe",
+        );
+        expect(canRegisterAsTeam(player, "minion")).toBe(false);
+    });
+
+    it("returns true for a player with recluse_misregister for minion team", () => {
+        const player = addEffectTo(
+            makePlayer({ id: "p1", roleId: "recluse" }),
+            "recluse_misregister",
+        );
+        expect(canRegisterAsTeam(player, "minion")).toBe(true);
+    });
+
+    it("returns true for a player with recluse_misregister for demon team", () => {
+        const player = addEffectTo(
+            makePlayer({ id: "p1", roleId: "recluse" }),
+            "recluse_misregister",
+        );
+        expect(canRegisterAsTeam(player, "demon")).toBe(true);
+    });
+
+    it("returns false for a team not declared in canRegisterAs", () => {
+        const player = addEffectTo(
+            makePlayer({ id: "p1", roleId: "recluse" }),
+            "recluse_misregister",
+        );
+        expect(canRegisterAsTeam(player, "townsfolk")).toBe(false);
+    });
+
+    it("returns true for custom effects with canRegisterAs", () => {
+        registerTestEffect({
+            id: "custom_misregister" as EffectId,
+            icon: "user",
+            canRegisterAs: { teams: ["townsfolk"] },
+        });
+
+        const player = addEffectTo(
+            makePlayer({ id: "p1", roleId: "imp" }),
+            "custom_misregister",
+        );
+        expect(canRegisterAsTeam(player, "townsfolk")).toBe(true);
+        expect(canRegisterAsTeam(player, "minion")).toBe(false);
     });
 });

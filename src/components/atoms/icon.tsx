@@ -54,7 +54,7 @@ import {
     ZapOffIcon,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { flowerLotus, starNorth } from "@lucide/lab";
+import { candleHolderLit, flowerLotus, starNorth } from "@lucide/lab";
 
 const Icons = {
     alertTriangle: AlertTriangleIcon,
@@ -112,6 +112,7 @@ const Icons = {
 };
 
 const LabIcons = {
+    candleHolderLit,
     flowerLotus,
     starNorth,
 }

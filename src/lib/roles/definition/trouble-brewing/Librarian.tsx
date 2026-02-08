@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { RoleDefinition } from "../../types";
 import { isAlive } from "../../../types";
-import { getRole } from "../../index";
+import { getRole, getAllRoles } from "../../index";
 import { useI18n } from "../../../i18n";
 import { RoleCard } from "../../../../components/items/RoleCard";
 import { NightActionLayout, NarratorSetupLayout } from "../../../../components/layouts";
@@ -15,7 +15,7 @@ import {
 } from "../../../../components/items";
 import { SelectablePlayerItem, SelectableRoleItem } from "../../../../components/inputs";
 import { Button, Icon } from "../../../../components/atoms";
-import { perceive } from "../../../pipeline";
+import { perceive, canRegisterAsTeam } from "../../../pipeline";
 
 type Phase = "narrator_setup" | "player_view" | "no_outsiders_view";
 
@@ -35,12 +35,16 @@ const definition: RoleDefinition = {
         const [phase, setPhase] = useState<Phase>("narrator_setup");
         const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
         const [selectedOutsider, setSelectedOutsider] = useState<string | null>(null);
+        const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
 
         const otherPlayers = state.players.filter((p) => p.id !== player.id);
 
+        // All defined outsider roles (for misregistration role picker)
+        const outsiderRoles = getAllRoles().filter((r) => r.team === "outsider");
+
         const outsidersInGame = state.players.filter((p) => {
             const perception = perceive(p, player, "team", state);
-            return perception.team === "outsider";
+            return perception.team === "outsider" || canRegisterAsTeam(p, "outsider");
         });
 
         const hasOutsiders = outsidersInGame.length > 0;
@@ -49,19 +53,21 @@ const definition: RoleDefinition = {
             const p = state.players.find((pl) => pl.id === playerId);
             if (!p) return false;
             const perception = perceive(p, player, "team", state);
-            return perception.team === "outsider";
+            return perception.team === "outsider" || canRegisterAsTeam(p, "outsider");
         });
 
         const canProceedToPlayer =
             selectedPlayers.length === 2 &&
             outsidersInSelection.length >= 1 &&
-            selectedOutsider !== null;
+            selectedOutsider !== null &&
+            selectedRoleId !== null;
 
         const handlePlayerToggle = (playerId: string) => {
             setSelectedPlayers((prev) => {
                 if (prev.includes(playerId)) {
                     if (playerId === selectedOutsider) {
                         setSelectedOutsider(null);
+                        setSelectedRoleId(null);
                     }
                     return prev.filter((id) => id !== playerId);
                 } else if (prev.length < 2) {
@@ -69,6 +75,11 @@ const definition: RoleDefinition = {
                 }
                 return prev;
             });
+        };
+
+        const handleSelectRole = (playerId: string, roleId: string) => {
+            setSelectedOutsider(playerId);
+            setSelectedRoleId(roleId);
         };
 
         const handleShowToPlayer = () => {
@@ -103,17 +114,11 @@ const definition: RoleDefinition = {
         };
 
         const handleComplete = () => {
-            if (!selectedOutsider) return;
-
-            const outsiderP = state.players.find((p) => p.id === selectedOutsider);
-            if (!outsiderP) return;
+            if (!selectedOutsider || !selectedRoleId) return;
 
             const player1 = state.players.find((p) => p.id === selectedPlayers[0]);
             const player2 = state.players.find((p) => p.id === selectedPlayers[1]);
             if (!player1 || !player2) return;
-
-            // Log the perceived role (what was actually shown to the player)
-            const shownPerception = perceive(outsiderP, player, "role", state);
 
             onComplete({
                 entries: [
@@ -127,7 +132,7 @@ const definition: RoleDefinition = {
                                     player: player.id,
                                     player1: player1.id,
                                     player2: player2.id,
-                                    role: shownPerception.roleId,
+                                    role: selectedRoleId,
                                 },
                             },
                         ],
@@ -137,7 +142,7 @@ const definition: RoleDefinition = {
                             action: "see_outsider",
                             shownPlayers: selectedPlayers,
                             outsiderId: selectedOutsider,
-                            shownRoleId: shownPerception.roleId,
+                            shownRoleId: selectedRoleId,
                         },
                     },
                 ],
@@ -193,7 +198,7 @@ const definition: RoleDefinition = {
                             const role = getRole(p.roleId);
                             const perception = perceive(p, player, "team", state);
                             const isSelected = selectedPlayers.includes(p.id);
-                            const registersOutsider = perception.team === "outsider";
+                            const registersOutsider = perception.team === "outsider" || canRegisterAsTeam(p, "outsider");
 
                             return (
                                 <SelectablePlayerItem
@@ -213,22 +218,38 @@ const definition: RoleDefinition = {
 
                     {selectedPlayers.length === 2 && outsidersInSelection.length > 0 && (
                         <StepSection step={2} label={t.game.selectWhichRoleToShow}>
-                            {outsidersInSelection.map((playerId) => {
+                            {outsidersInSelection.flatMap((playerId) => {
                                 const p = state.players.find((pl) => pl.id === playerId);
-                                if (!p) return null;
-                                const pPerception = perceive(p, player, "role", state);
-                                const perceivedRole = getRole(pPerception.roleId);
+                                if (!p) return [];
+                                const pPerception = perceive(p, player, "team", state);
 
-                                return (
+                                if (pPerception.team === "outsider") {
+                                    // Actual outsider (or configured perceiveAs): show perceived role
+                                    const rolePerception = perceive(p, player, "role", state);
+                                    const perceivedRole = getRole(rolePerception.roleId);
+                                    return [(
+                                        <SelectableRoleItem
+                                            key={playerId}
+                                            playerName={p.name}
+                                            roleName={getRoleName(rolePerception.roleId)}
+                                            roleIcon={perceivedRole?.icon ?? "user"}
+                                            isSelected={selectedOutsider === playerId && selectedRoleId === rolePerception.roleId}
+                                            onClick={() => handleSelectRole(playerId, rolePerception.roleId)}
+                                        />
+                                    )];
+                                }
+
+                                // Misregistering player (canRegisterAsTeam): show all outsider roles
+                                return outsiderRoles.map((role) => (
                                     <SelectableRoleItem
-                                        key={playerId}
+                                        key={`${playerId}-${role.id}`}
                                         playerName={p.name}
-                                        roleName={getRoleName(pPerception.roleId)}
-                                        roleIcon={perceivedRole?.icon ?? "user"}
-                                        isSelected={selectedOutsider === playerId}
-                                        onClick={() => setSelectedOutsider(playerId)}
+                                        roleName={getRoleName(role.id)}
+                                        roleIcon={role.icon}
+                                        isSelected={selectedOutsider === playerId && selectedRoleId === role.id}
+                                        onClick={() => handleSelectRole(playerId, role.id)}
                                     />
-                                );
+                                ));
                             })}
                         </StepSection>
                     )}
@@ -266,14 +287,8 @@ const definition: RoleDefinition = {
             );
         }
 
-        // Player View Phase — use perceived role for display
-        const outsiderPlayer = state.players.find((p) => p.id === selectedOutsider);
-        const outsiderPerception = outsiderPlayer
-            ? perceive(outsiderPlayer, player, "role", state)
-            : null;
-        const outsiderRole = outsiderPerception
-            ? getRole(outsiderPerception.roleId)
-            : null;
+        // Player View Phase — use the narrator's chosen role
+        const shownRole = selectedRoleId ? getRole(selectedRoleId) : null;
         const player1 = state.players.find((p) => p.id === selectedPlayers[0]);
         const player2 = state.players.find((p) => p.id === selectedPlayers[1]);
 
@@ -290,10 +305,10 @@ const definition: RoleDefinition = {
 
                 <MysticDivider />
 
-                {outsiderRole && (
+                {shownRole && (
                     <RoleRevealBadge
-                        icon={outsiderRole.icon}
-                        roleName={getRoleName(outsiderRole.id)}
+                        icon={shownRole.icon}
+                        roleName={getRoleName(shownRole.id)}
                         label={t.game.oneOfThemIsThe}
                     />
                 )}

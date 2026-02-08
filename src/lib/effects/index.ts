@@ -8,6 +8,7 @@ import SlayerBullet from "./definition/SlayerBullet";
 import Bounce from "./definition/Bounce";
 import Martyrdom from "./definition/Martyrdom";
 import ScarletWoman from "./definition/ScarletWoman";
+import RecluseMisregister from "./definition/RecluseMisregister";
 
 export const EFFECTS: Record<EffectId, EffectDefinition> = {
     dead: Dead,
@@ -19,6 +20,7 @@ export const EFFECTS: Record<EffectId, EffectDefinition> = {
     bounce: Bounce,
     martyrdom: Martyrdom,
     scarlet_woman: ScarletWoman,
+    recluse_misregister: RecluseMisregister,
 };
 
 export function getEffect(effectId: string): EffectDefinition | undefined {

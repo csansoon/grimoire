@@ -13,9 +13,7 @@ const pureHandler: IntentHandler = {
     },
     handle: (intent, effectPlayer, state) => {
         const nom = intent as NominateIntent;
-        const nominator = state.players.find(
-            (p) => p.id === nom.nominatorId
-        );
+        const nominator = state.players.find((p) => p.id === nom.nominatorId);
         if (!nominator) return { action: "allow" };
 
         const nominatorRole = getRole(nominator.roleId);

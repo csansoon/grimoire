@@ -6,7 +6,13 @@ import {
     AvailableDayAction,
     WinConditionTrigger,
 } from "./types";
-import { GameState, PlayerState, Game, HistoryEntry, generateId } from "../types";
+import {
+    GameState,
+    PlayerState,
+    Game,
+    HistoryEntry,
+    generateId,
+} from "../types";
 import { getEffect } from "../effects";
 import { getDefaultResolver } from "./resolvers";
 import { EffectToAdd } from "../roles/types";
@@ -21,7 +27,7 @@ export function emptyStateChanges(): StateChanges {
 
 export function mergeStateChanges(
     target: StateChanges,
-    source?: StateChanges
+    source?: StateChanges,
 ): StateChanges {
     if (!source) return target;
 
@@ -33,7 +39,7 @@ export function mergeStateChanges(
         addEffects: mergeEffectRecords(target.addEffects, source.addEffects),
         removeEffects: mergeRemoveRecords(
             target.removeEffects,
-            source.removeEffects
+            source.removeEffects,
         ),
         changeRoles:
             target.changeRoles || source.changeRoles
@@ -44,7 +50,7 @@ export function mergeStateChanges(
 
 function mergeEffectRecords(
     a?: Record<string, EffectToAdd[]>,
-    b?: Record<string, EffectToAdd[]>
+    b?: Record<string, EffectToAdd[]>,
 ): Record<string, EffectToAdd[]> | undefined {
     if (!a && !b) return undefined;
     const result: Record<string, EffectToAdd[]> = { ...a };
@@ -58,7 +64,7 @@ function mergeEffectRecords(
 
 function mergeRemoveRecords(
     a?: Record<string, string[]>,
-    b?: Record<string, string[]>
+    b?: Record<string, string[]>,
 ): Record<string, string[]> | undefined {
     if (!a && !b) return undefined;
     const result: Record<string, string[]> = { ...a };
@@ -76,7 +82,7 @@ function mergeRemoveRecords(
 
 function collectActiveHandlers(
     state: GameState,
-    intentType: string
+    intentType: string,
 ): Array<{ handler: IntentHandler; player: PlayerState }> {
     const result: Array<{ handler: IntentHandler; player: PlayerState }> = [];
 
@@ -109,7 +115,7 @@ function runPipeline(
     state: GameState,
     game: Game,
     accumulated: StateChanges,
-    startIndex: number
+    startIndex: number,
 ): PipelineResult {
     for (let i = startIndex; i < handlers.length; i++) {
         const { handler, player } = handlers[i];
@@ -120,27 +126,36 @@ function runPipeline(
         switch (result.action) {
             case "allow":
                 if (result.stateChanges) {
-                    accumulated = mergeStateChanges(accumulated, result.stateChanges);
+                    accumulated = mergeStateChanges(
+                        accumulated,
+                        result.stateChanges,
+                    );
                 }
                 continue;
 
             case "prevent":
                 if (result.stateChanges) {
-                    accumulated = mergeStateChanges(accumulated, result.stateChanges);
+                    accumulated = mergeStateChanges(
+                        accumulated,
+                        result.stateChanges,
+                    );
                 }
                 return { type: "prevented", stateChanges: accumulated };
 
             case "redirect": {
                 if (result.stateChanges) {
-                    accumulated = mergeStateChanges(accumulated, result.stateChanges);
+                    accumulated = mergeStateChanges(
+                        accumulated,
+                        result.stateChanges,
+                    );
                 }
                 // Re-collect handlers for the new intent type and restart pipeline
                 const newHandlers = collectActiveHandlers(
                     state,
-                    result.newIntent.type
+                    result.newIntent.type,
                 );
                 newHandlers.sort(
-                    (a, b) => a.handler.priority - b.handler.priority
+                    (a, b) => a.handler.priority - b.handler.priority,
                 );
                 return runPipeline(
                     result.newIntent,
@@ -148,7 +163,7 @@ function runPipeline(
                     state,
                     game,
                     accumulated,
-                    0
+                    0,
                 );
             }
 
@@ -165,7 +180,7 @@ function runPipeline(
                                 if (afterUI.stateChanges) {
                                     accumulated = mergeStateChanges(
                                         accumulated,
-                                        afterUI.stateChanges
+                                        afterUI.stateChanges,
                                     );
                                 }
                                 return runPipeline(
@@ -174,13 +189,13 @@ function runPipeline(
                                     state,
                                     game,
                                     accumulated,
-                                    i + 1
+                                    i + 1,
                                 );
                             case "prevent":
                                 if (afterUI.stateChanges) {
                                     accumulated = mergeStateChanges(
                                         accumulated,
-                                        afterUI.stateChanges
+                                        afterUI.stateChanges,
                                     );
                                 }
                                 return {
@@ -191,16 +206,16 @@ function runPipeline(
                                 if (afterUI.stateChanges) {
                                     accumulated = mergeStateChanges(
                                         accumulated,
-                                        afterUI.stateChanges
+                                        afterUI.stateChanges,
                                     );
                                 }
                                 const newHandlers = collectActiveHandlers(
                                     state,
-                                    afterUI.newIntent.type
+                                    afterUI.newIntent.type,
                                 );
                                 newHandlers.sort(
                                     (a, b) =>
-                                        a.handler.priority - b.handler.priority
+                                        a.handler.priority - b.handler.priority,
                                 );
                                 return runPipeline(
                                     afterUI.newIntent,
@@ -208,7 +223,7 @@ function runPipeline(
                                     state,
                                     game,
                                     accumulated,
-                                    0
+                                    0,
                                 );
                             }
                             default:
@@ -219,7 +234,7 @@ function runPipeline(
                                     state,
                                     game,
                                     accumulated,
-                                    i + 1
+                                    i + 1,
                                 );
                         }
                     },
@@ -246,7 +261,7 @@ function runPipeline(
 export function resolveIntent(
     intent: Intent,
     state: GameState,
-    game: Game
+    game: Game,
 ): PipelineResult {
     const handlers = collectActiveHandlers(state, intent.type);
     handlers.sort((a, b) => a.handler.priority - b.handler.priority);
@@ -261,10 +276,7 @@ export function resolveIntent(
  * Apply pipeline state changes to a game, creating history entries as needed.
  * This is the bridge between the pipeline system and the event-sourced game state.
  */
-export function applyPipelineChanges(
-    game: Game,
-    changes: StateChanges
-): Game {
+export function applyPipelineChanges(game: Game, changes: StateChanges): Game {
     if (
         changes.entries.length === 0 &&
         !changes.stateUpdates &&
@@ -293,12 +305,17 @@ export function applyPipelineChanges(
                 : (updatedGame.history.at(-1)?.stateAfter ?? currentState);
 
             // Apply effect and role changes on first entry
-            if (isFirst && (changes.addEffects || changes.removeEffects || changes.changeRoles)) {
+            if (
+                isFirst &&
+                (changes.addEffects ||
+                    changes.removeEffects ||
+                    changes.changeRoles)
+            ) {
                 newState = applyPlayerChanges(
                     newState,
                     changes.addEffects,
                     changes.removeEffects,
-                    changes.changeRoles
+                    changes.changeRoles,
                 );
             }
 
@@ -332,7 +349,7 @@ export function applyPipelineChanges(
             newState,
             changes.addEffects,
             changes.removeEffects,
-            changes.changeRoles
+            changes.changeRoles,
         );
     }
 
@@ -354,7 +371,7 @@ function applyPlayerChanges(
     state: GameState,
     addEffects?: Record<string, EffectToAdd[]>,
     removeEffects?: Record<string, string[]>,
-    changeRoles?: Record<string, string>
+    changeRoles?: Record<string, string>,
 ): GameState {
     return {
         ...state,
@@ -364,7 +381,7 @@ function applyPlayerChanges(
 
             if (removeEffects?.[player.id]) {
                 effects = effects.filter(
-                    (e) => !removeEffects[player.id].includes(e.type)
+                    (e) => !removeEffects[player.id].includes(e.type),
                 );
             }
 
@@ -396,7 +413,7 @@ function applyPlayerChanges(
  */
 export function getAvailableDayActions(
     state: GameState,
-    t: Record<string, any>
+    t: Record<string, any>,
 ): AvailableDayAction[] {
     const actions: AvailableDayAction[] = [];
 
@@ -434,7 +451,9 @@ export function checkDynamicWinConditions(
     state: GameState,
     game: Game,
     triggers: WinConditionTrigger[],
-    getRole: (roleId: string) => { winConditions?: import("./types").WinConditionCheck[] } | undefined
+    getRole: (
+        roleId: string,
+    ) => { winConditions?: import("./types").WinConditionCheck[] } | undefined,
 ): "townsfolk" | "demon" | null {
     // Check effect-based win conditions
     for (const player of state.players) {
@@ -467,5 +486,5 @@ export function checkDynamicWinConditions(
     return null;
 }
 
-export { perceive } from "./perception";
+export { perceive, canRegisterAsTeam } from "./perception";
 export * from "./types";

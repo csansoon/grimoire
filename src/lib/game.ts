@@ -26,10 +26,7 @@ export type PlayerSetup = {
     roleId: string;
 };
 
-export function createGame(
-    name: string,
-    players: PlayerSetup[]
-): Game {
+export function createGame(name: string, players: PlayerSetup[]): Game {
     const gameId = generateId();
 
     const playerStates: PlayerState[] = players.map((p) => {
@@ -73,7 +70,13 @@ export function createGame(
                 timestamp: Date.now(),
                 type: "game_created",
                 message: [{ type: "i18n", key: "history.gameStarted" }],
-                data: { players: playerStates.map((p) => ({ id: p.id, name: p.name, roleId: p.roleId })) },
+                data: {
+                    players: playerStates.map((p) => ({
+                        id: p.id,
+                        name: p.name,
+                        roleId: p.roleId,
+                    })),
+                },
                 stateAfter: initialState,
             },
         ],
@@ -88,14 +91,14 @@ export function createGame(
 
 function expireEffects(
     state: GameState,
-    expirationType: "end_of_night" | "end_of_day"
+    expirationType: "end_of_night" | "end_of_day",
 ): GameState {
     return {
         ...state,
         players: state.players.map((player) => ({
             ...player,
             effects: player.effects.filter(
-                (e) => e.expiresAt !== expirationType
+                (e) => e.expiresAt !== expirationType,
             ),
         })),
     };
@@ -107,7 +110,7 @@ export function addHistoryEntry(
     stateUpdates?: Partial<GameState>,
     addEffects?: Record<string, EffectToAdd[]>,
     removeEffects?: Record<string, string[]>,
-    changeRoles?: Record<string, string>
+    changeRoles?: Record<string, string>,
 ): Game {
     const currentState = getCurrentState(game);
 
@@ -125,7 +128,7 @@ export function addHistoryEntry(
                 // Remove effects
                 if (removeEffects?.[player.id]) {
                     effects = effects.filter(
-                        (e) => !removeEffects[player.id].includes(e.type)
+                        (e) => !removeEffects[player.id].includes(e.type),
                     );
                 }
 
@@ -195,7 +198,7 @@ export function getNextStep(game: Game): GameStep {
             .map((e) => e.data.playerId as string);
 
         const nextPlayer = state.players.find(
-            (p) => !revealedPlayers.includes(p.id)
+            (p) => !revealedPlayers.includes(p.id),
         );
 
         if (nextPlayer) {
@@ -214,10 +217,10 @@ export function getNextStep(game: Game): GameStep {
         const roleChangeRevealedPlayers = new Set(
             game.history
                 .filter((e) => e.type === "role_change_revealed")
-                .map((e) => e.data.playerId as string)
+                .map((e) => e.data.playerId as string),
         );
         const unrevealedChange = roleChangedPlayers.find(
-            (pid) => !roleChangeRevealedPlayers.has(pid)
+            (pid) => !roleChangeRevealedPlayers.has(pid),
         );
         if (unrevealedChange) {
             return { type: "role_change_reveal", playerId: unrevealedChange };
@@ -227,7 +230,9 @@ export function getNextStep(game: Game): GameStep {
         const nightStartIndex = findLastEventIndex(game, "night_started");
         const actedRoles = game.history
             .slice(nightStartIndex + 1)
-            .filter((e) => e.type === "night_action" || e.type === "night_skipped")
+            .filter(
+                (e) => e.type === "night_action" || e.type === "night_skipped",
+            )
             .map((e) => e.data.roleId as string);
 
         // Get all roles with night actions in order
@@ -302,24 +307,25 @@ export function startNight(game: Game): Game {
         {
             type: "night_started",
             message: [
-                { type: "i18n", key: "history.nightBegins", params: { round: newRound } },
+                {
+                    type: "i18n",
+                    key: "history.nightBegins",
+                    params: { round: newRound },
+                },
             ],
             data: { round: newRound },
         },
-        { phase: "night", round: newRound }
+        { phase: "night", round: newRound },
     );
 }
 
 export function startDay(game: Game): Game {
     // Resolve night - add death announcement entries
-    let updatedGame = addHistoryEntry(
-        game,
-        {
-            type: "night_resolved",
-            message: [{ type: "i18n", key: "history.sunRises" }],
-            data: {},
-        }
-    );
+    let updatedGame = addHistoryEntry(game, {
+        type: "night_resolved",
+        message: [{ type: "i18n", key: "history.sunRises" }],
+        data: {},
+    });
 
     // Find who died tonight
     const nightStartIndex = findLastEventIndex(updatedGame, "night_started");
@@ -340,7 +346,11 @@ export function startDay(game: Game): Game {
             updatedGame = addHistoryEntry(updatedGame, {
                 type: "effect_added",
                 message: [
-                    { type: "i18n", key: "history.diedInNight", params: { player: player.id } },
+                    {
+                        type: "i18n",
+                        key: "history.diedInNight",
+                        params: { player: player.id },
+                    },
                 ],
                 data: { playerId: player.id, effectType: "dead" },
             });
@@ -348,7 +358,10 @@ export function startDay(game: Game): Game {
     }
 
     // Expire effects that should end at end of night (e.g., Monk's protection)
-    const stateAfterExpiration = expireEffects(getCurrentState(updatedGame), "end_of_night");
+    const stateAfterExpiration = expireEffects(
+        getCurrentState(updatedGame),
+        "end_of_night",
+    );
 
     // Transition to day with expired effects applied
     return addHistoryEntry(
@@ -356,11 +369,15 @@ export function startDay(game: Game): Game {
         {
             type: "day_started",
             message: [
-                { type: "i18n", key: "history.dayBegins", params: { round: currentState.round } },
+                {
+                    type: "i18n",
+                    key: "history.dayBegins",
+                    params: { round: currentState.round },
+                },
             ],
             data: { round: currentState.round },
         },
-        { phase: "day", players: stateAfterExpiration.players }
+        { phase: "day", players: stateAfterExpiration.players },
     );
 }
 
@@ -372,7 +389,11 @@ export function markRoleRevealed(game: Game, playerId: string): Game {
     return addHistoryEntry(game, {
         type: "role_revealed",
         message: [
-            { type: "i18n", key: "history.learnedRole", params: { player: playerId, role: player.roleId } },
+            {
+                type: "i18n",
+                key: "history.learnedRole",
+                params: { player: playerId, role: player.roleId },
+            },
         ],
         data: { playerId, roleId: player.roleId },
     });
@@ -386,16 +407,17 @@ export function markRoleChangeRevealed(game: Game, playerId: string): Game {
     return addHistoryEntry(game, {
         type: "role_change_revealed",
         message: [
-            { type: "i18n", key: "history.roleChanged", params: { player: playerId, role: player.roleId } },
+            {
+                type: "i18n",
+                key: "history.roleChanged",
+                params: { player: playerId, role: player.roleId },
+            },
         ],
         data: { playerId, roleId: player.roleId },
     });
 }
 
-export function applyNightAction(
-    game: Game,
-    result: NightActionResult
-): Game {
+export function applyNightAction(game: Game, result: NightActionResult): Game {
     let updatedGame = game;
 
     // Apply direct entries and effects (not the intent — that's handled by the pipeline)
@@ -413,7 +435,7 @@ export function applyNightAction(
             entry,
             directResult.stateUpdates,
             directResult.addEffects,
-            directResult.removeEffects
+            directResult.removeEffects,
         );
         // Only apply state/effects on first entry
         directResult.stateUpdates = undefined;
@@ -424,11 +446,19 @@ export function applyNightAction(
     return updatedGame;
 }
 
-export function skipNightAction(game: Game, roleId: string, playerId: string): Game {
+export function skipNightAction(
+    game: Game,
+    roleId: string,
+    playerId: string,
+): Game {
     return addHistoryEntry(game, {
         type: "night_skipped",
         message: [
-            { type: "i18n", key: "history.noActionTonight", params: { role: roleId } },
+            {
+                type: "i18n",
+                key: "history.noActionTonight",
+                params: { role: roleId },
+            },
         ],
         data: { roleId, playerId },
     });
@@ -446,7 +476,7 @@ export function skipNightAction(game: Game, roleId: string, playerId: string): G
 export function nominate(
     game: Game,
     nominatorId: string,
-    nomineeId: string
+    nomineeId: string,
 ): Game {
     const state = getCurrentState(game);
     const nominator = state.players.find((p) => p.id === nominatorId);
@@ -479,7 +509,7 @@ export function resolveVote(
     game: Game,
     nomineeId: string,
     votesFor: string[],
-    votesAgainst: string[]
+    votesAgainst: string[],
 ): Game {
     const state = getCurrentState(game);
     const nominee = state.players.find((p) => p.id === nomineeId);
@@ -493,7 +523,11 @@ export function resolveVote(
     const addEffects: Record<string, { type: string }[]> = {};
     for (const voterId of votesFor) {
         const voter = state.players.find((p) => p.id === voterId);
-        if (voter && hasEffect(voter, "dead") && !hasEffect(voter, "used_dead_vote")) {
+        if (
+            voter &&
+            hasEffect(voter, "dead") &&
+            !hasEffect(voter, "used_dead_vote")
+        ) {
             addEffects[voterId] = [{ type: "used_dead_vote" }];
         }
     }
@@ -503,17 +537,24 @@ export function resolveVote(
         {
             type: "vote",
             message: [
-                { type: "i18n", key: "history.voteResult", params: {
-                    player: nomineeId,
-                    for: votesFor.length,
-                    against: votesAgainst.length,
-                }},
-                { type: "i18n", key: passed ? "history.votePassed" : "history.voteFailed" },
+                {
+                    type: "i18n",
+                    key: "history.voteResult",
+                    params: {
+                        player: nomineeId,
+                        for: votesFor.length,
+                        against: votesAgainst.length,
+                    },
+                },
+                {
+                    type: "i18n",
+                    key: passed ? "history.votePassed" : "history.voteFailed",
+                },
             ],
             data: { nomineeId, votesFor, votesAgainst, passed, majority },
         },
         { phase: "day" },
-        addEffects
+        addEffects,
     );
 
     if (passed) {
@@ -528,7 +569,7 @@ export function resolveVote(
         const result = resolveIntent(
             executeIntent,
             getCurrentState(updatedGame),
-            updatedGame
+            updatedGame,
         );
 
         // Executions don't require UI input, so result is always resolved or prevented
@@ -553,7 +594,7 @@ export function resolveVote(
  */
 export function checkWinCondition(
     state: GameState,
-    game?: Game
+    game?: Game,
 ): "townsfolk" | "demon" | null {
     const alivePlayers = getAlivePlayers(state);
     const aliveDemons = alivePlayers.filter((p) => {
@@ -577,7 +618,7 @@ export function checkWinCondition(
             state,
             game,
             ["after_execution", "after_state_change"],
-            getRole
+            getRole,
         );
         if (dynamicResult) return dynamicResult;
     }
@@ -591,7 +632,7 @@ export function checkWinCondition(
  */
 export function checkEndOfDayWinConditions(
     state: GameState,
-    game: Game
+    game: Game,
 ): "townsfolk" | "demon" | null {
     return checkDynamicWinConditions(state, game, ["end_of_day"], getRole);
 }
@@ -604,12 +645,15 @@ export function endGame(game: Game, winner: "townsfolk" | "demon"): Game {
             message: [
                 {
                     type: "i18n",
-                    key: winner === "townsfolk" ? "history.goodWins" : "history.evilWins",
+                    key:
+                        winner === "townsfolk"
+                            ? "history.goodWins"
+                            : "history.evilWins",
                 },
             ],
             data: { winner },
         },
-        { phase: "ended", winner }
+        { phase: "ended", winner },
     );
 }
 
@@ -623,19 +667,23 @@ export function endGame(game: Game, winner: "townsfolk" | "demon"): Game {
 export function addEffectToPlayer(
     game: Game,
     playerId: string,
-    effectType: string
+    effectType: string,
 ): Game {
     return addHistoryEntry(
         game,
         {
             type: "effect_added",
             message: [
-                { type: "i18n", key: "history.effectAdded", params: { player: playerId, effect: effectType } },
+                {
+                    type: "i18n",
+                    key: "history.effectAdded",
+                    params: { player: playerId, effect: effectType },
+                },
             ],
             data: { playerId, effectType, source: "narrator" },
         },
         undefined,
-        { [playerId]: [{ type: effectType, expiresAt: "never" }] }
+        { [playerId]: [{ type: effectType, expiresAt: "never" }] },
     );
 }
 
@@ -645,19 +693,23 @@ export function addEffectToPlayer(
 export function removeEffectFromPlayer(
     game: Game,
     playerId: string,
-    effectType: string
+    effectType: string,
 ): Game {
     return addHistoryEntry(
         game,
         {
             type: "effect_removed",
             message: [
-                { type: "i18n", key: "history.effectRemoved", params: { player: playerId, effect: effectType } },
+                {
+                    type: "i18n",
+                    key: "history.effectRemoved",
+                    params: { player: playerId, effect: effectType },
+                },
             ],
             data: { playerId, effectType, source: "narrator" },
         },
         undefined,
         undefined,
-        { [playerId]: [effectType] }
+        { [playerId]: [effectType] },
     );
 }

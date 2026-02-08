@@ -17,6 +17,7 @@ import Slayer from "./definition/trouble-brewing/Slayer";
 import Mayor from "./definition/trouble-brewing/Mayor";
 import Saint from "./definition/trouble-brewing/Saint";
 import ScarletWoman from "./definition/trouble-brewing/ScarletWoman";
+import Recluse from "./definition/trouble-brewing/Recluse";
 
 export const ROLES: Record<RoleId, RoleDefinition> = {
     imp: Imp,
@@ -36,6 +37,7 @@ export const ROLES: Record<RoleId, RoleDefinition> = {
     mayor: Mayor,
     saint: Saint,
     scarlet_woman: ScarletWoman,
+    recluse: Recluse,
 };
 
 // Scripts define which roles are in each edition
@@ -59,6 +61,7 @@ export const SCRIPTS: Record<ScriptId, { name: string; roles: RoleId[] }> = {
             "slayer",
             "mayor",
             "saint",
+            "recluse",
             "villager",
             "scarlet_woman",
             "imp",
@@ -99,7 +102,7 @@ export type RoleDistribution = {
  * 10: 7/0/2/1, 11: 7/1/2/1, 12: 7/2/2/1, 13: 9/0/3/1, etc.
  */
 export function getRecommendedDistribution(
-    playerCount: number
+    playerCount: number,
 ): RoleDistribution | null {
     if (playerCount < 5) return null;
 

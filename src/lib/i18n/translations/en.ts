@@ -67,7 +67,8 @@ const en: Translations = {
     game: {
         narratorGiveDevice: "Give the device to {player} to see their role.",
         narratorWakePlayer: "Wake {player} ({role}) for their night action.",
-        narratorRoleChanged: "Give the device to {player} — their role has changed.",
+        narratorRoleChanged:
+            "Give the device to {player} — their role has changed.",
         readyShowToPlayer: "Ready - Show to Player",
         yourRoleHasChanged: "Your role has changed!",
 
@@ -139,8 +140,7 @@ const en: Translations = {
             "One of these players is a Townsfolk. Remember who they are!",
 
         // Librarian specific
-        mustIncludeOutsider:
-            "At least one selected player must be an Outsider",
+        mustIncludeOutsider: "At least one selected player must be an Outsider",
         librarianInfo: "Your Information",
         oneOfTheseIsTheOutsider:
             "One of these players is an Outsider. Remember who they are!",
@@ -150,8 +150,7 @@ const en: Translations = {
         confirmNoOutsiders: "Show to Player",
 
         // Investigator specific
-        mustIncludeMinion:
-            "At least one selected player must be a Minion",
+        mustIncludeMinion: "At least one selected player must be a Minion",
         investigatorInfo: "Your Information",
         oneOfTheseIsTheMinion:
             "One of these players is a Minion. Remember who they are!",
@@ -170,7 +169,8 @@ const en: Translations = {
 
         // Monk specific
         monkInfo: "Choose a Player",
-        selectPlayerToProtect: "Select a player to protect from the Demon tonight.",
+        selectPlayerToProtect:
+            "Select a player to protect from the Demon tonight.",
         protectedForTheNight: "is protected for the night.",
 
         // Soldier specific
@@ -181,7 +181,8 @@ const en: Translations = {
         fortuneTellerInfo: "Your Vision",
         selectTwoPlayersToCheck: "Select 2 players to check for Demons.",
         selectRedHerring: "Assign Red Herring",
-        redHerringInfo: "Select a good player who will register as a Demon to this Fortune Teller.",
+        redHerringInfo:
+            "Select a good player who will register as a Demon to this Fortune Teller.",
         selectGoodPlayerAsRedHerring: "Select a good player as the Red Herring",
         selectRandomRedHerring: "Random",
         yesOneIsDemon: "YES — One of them is a Demon!",
@@ -194,7 +195,8 @@ const en: Translations = {
 
         // Ravenkeeper specific
         ravenkeeperInfo: "Choose a Player",
-        selectPlayerToSeeRole: "You have died! Select a player to learn their role.",
+        selectPlayerToSeeRole:
+            "You have died! Select a player to learn their role.",
         playerRoleIs: "Their role is...",
 
         // Handback screen
@@ -237,12 +239,15 @@ const en: Translations = {
             description:
                 "Each night*, choose a player: they die. If you kill yourself, a Minion becomes the Imp.",
             bounceTitle: "Kill Redirected!",
-            bounceDescription: "The Demon targeted {target}, but their kill bounced. Choose who dies instead.",
+            bounceDescription:
+                "The Demon targeted {target}, but their kill bounced. Choose who dies instead.",
             bounceOriginalLabel: "original target",
             history: {
                 choseToKill: "{player} chose to kill {target}",
-                failedToKill: "{player} tried to kill {target}, but they were protected",
-                bounceRedirected: "{player} targeted {target}, but the kill was redirected to {redirect}",
+                failedToKill:
+                    "{player} tried to kill {target}, but they were protected",
+                bounceRedirected:
+                    "{player} targeted {target}, but the kill was redirected to {redirect}",
             },
         },
         washerwoman: {
@@ -261,7 +266,8 @@ const en: Translations = {
             history: {
                 discoveredOutsider:
                     "{player} discovered that either {player1} or {player2} is the {role}",
-                noOutsiders: "{player} learned there are no Outsiders in this game",
+                noOutsiders:
+                    "{player} learned there are no Outsiders in this game",
             },
         },
         investigator: {
@@ -278,7 +284,8 @@ const en: Translations = {
             description:
                 "You start knowing how many pairs of evil players there are.",
             history: {
-                sawEvilPairs: "{player} learned there are {count} pairs of evil players sitting together",
+                sawEvilPairs:
+                    "{player} learned there are {count} pairs of evil players sitting together",
             },
         },
         empath: {
@@ -286,7 +293,8 @@ const en: Translations = {
             description:
                 "Each night, you learn how many of your 2 alive neighbours are evil.",
             history: {
-                sawEvilNeighbors: "{player} learned that {count} of their neighbors are evil",
+                sawEvilNeighbors:
+                    "{player} learned that {count} of their neighbors are evil",
             },
         },
         monk: {
@@ -299,17 +307,19 @@ const en: Translations = {
         },
         soldier: {
             name: "Soldier",
-            description:
-                "You are safe from the Demon.",
+            description: "You are safe from the Demon.",
         },
         fortune_teller: {
             name: "Fortune Teller",
             description:
                 "Each night, choose 2 players: you learn if either is a Demon. There is a good player that registers as a Demon to you.",
             history: {
-                sawDemon: "{player} checked {player1} and {player2} — YES, one is a Demon (or Red Herring)",
-                sawNoDemon: "{player} checked {player1} and {player2} — NO, neither is a Demon",
-                redHerringAssigned: "{redHerring} was assigned as the Red Herring for {player}",
+                sawDemon:
+                    "{player} checked {player1} and {player2} — YES, one is a Demon (or Red Herring)",
+                sawNoDemon:
+                    "{player} checked {player1} and {player2} — NO, neither is a Demon",
+                redHerringAssigned:
+                    "{redHerring} was assigned as the Red Herring for {player}",
             },
         },
         undertaker: {
@@ -317,7 +327,8 @@ const en: Translations = {
             description:
                 "Each night*, you learn which character died by execution today.",
             history: {
-                sawExecutedRole: "{player} learned that the executed player was the {role}",
+                sawExecutedRole:
+                    "{player} learned that the executed player was the {role}",
                 noExecution: "{player} learned there was no execution today",
             },
         },
@@ -334,8 +345,10 @@ const en: Translations = {
             description:
                 "The 1st time you are nominated, if the nominator is a Townsfolk, they are executed immediately.",
             history: {
-                townsfolkExecuted: "{nominator} nominated the Virgin and was executed!",
-                lostPurity: "{nominator} nominated the Virgin — the Virgin's power is spent",
+                townsfolkExecuted:
+                    "{nominator} nominated the Virgin and was executed!",
+                lostPurity:
+                    "{nominator} nominated the Virgin — the Virgin's power is spent",
             },
         },
         slayer: {
@@ -354,8 +367,7 @@ const en: Translations = {
         },
         saint: {
             name: "Saint",
-            description:
-                "If you die by execution, your team loses.",
+            description: "If you die by execution, your team loses.",
         },
         scarlet_woman: {
             name: "Scarlet Woman",
@@ -364,6 +376,11 @@ const en: Translations = {
             history: {
                 becameDemon: "{player} became the {role}",
             },
+        },
+        recluse: {
+            name: "Recluse",
+            description:
+                "You might register as evil & as a Minion or Demon, even if dead.",
         },
     },
 
@@ -380,8 +397,7 @@ const en: Translations = {
         },
         safe: {
             name: "Safe",
-            description:
-                "This player is protected from the Demon's kill.",
+            description: "This player is protected from the Demon's kill.",
         },
         red_herring: {
             name: "Red Herring",
@@ -405,13 +421,17 @@ const en: Translations = {
         },
         martyrdom: {
             name: "Martyrdom",
-            description:
-                "If this player is executed, the evil team wins.",
+            description: "If this player is executed, the evil team wins.",
         },
         scarlet_woman: {
             name: "Scarlet Woman",
             description:
                 "If the Demon dies with 5+ players alive, the player with this effect becomes the Demon.",
+        },
+        recluse_misregister: {
+            name: "Misregister",
+            description:
+                "This player might register as evil & as a Minion or Demon to information abilities.",
         },
     },
 

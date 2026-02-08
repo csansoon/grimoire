@@ -1,5 +1,6 @@
 import { IconName } from "../../components/atoms/icon";
 import { GameState, PlayerState } from "../types";
+import { TeamId } from "../teams";
 import {
     IntentHandler,
     DayActionDefinition,
@@ -16,7 +17,8 @@ export type EffectId =
     | "slayer_bullet"
     | "bounce"
     | "martyrdom"
-    | "scarlet_woman";
+    | "scarlet_woman"
+    | "recluse_misregister";
 
 export type EffectDefinition = {
     id: EffectId;
@@ -46,4 +48,12 @@ export type EffectDefinition = {
     // Perception modifiers — alter how the player carrying this effect
     // is perceived by information roles (e.g., Recluse, Spy)
     perceptionModifiers?: PerceptionModifier[];
+
+    // Declares that a player with this effect could register as these teams
+    // and/or alignments. Used by narrator-setup UIs (e.g. Investigator) to
+    // allow these players as valid picks even when perceiveAs isn't configured.
+    canRegisterAs?: {
+        teams?: TeamId[];
+        alignments?: ("good" | "evil")[];
+    };
 };

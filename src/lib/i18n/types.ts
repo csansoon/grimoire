@@ -341,6 +341,10 @@ export type Translations = {
                 becameDemon: string;
             };
         };
+        recluse: {
+            name: string;
+            description: string;
+        };
     };
 
     // Effects
@@ -378,6 +382,10 @@ export type Translations = {
             description: string;
         };
         scarlet_woman: {
+            name: string;
+            description: string;
+        };
+        recluse_misregister: {
             name: string;
             description: string;
         };

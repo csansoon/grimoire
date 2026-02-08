@@ -107,7 +107,7 @@ const resolvers: Record<string, IntentResolver> = {
 };
 
 export function getDefaultResolver(
-    intentType: string
+    intentType: string,
 ): IntentResolver | undefined {
     return resolvers[intentType];
 }
