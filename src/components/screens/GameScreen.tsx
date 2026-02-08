@@ -1,7 +1,9 @@
 import { useState, useCallback } from "react";
 import { Game, getCurrentState, getPlayer, PlayerState } from "../../lib/types";
 import { getRole } from "../../lib/roles";
+import { getTeam } from "../../lib/teams";
 import { RoleCard } from "../items/RoleCard";
+import { TeamBackground, CardLink } from "../items/TeamBackground";
 import {
     markRoleRevealed,
     startNight,
@@ -470,7 +472,6 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                     <role.RoleReveal
                         player={player}
                         onContinue={handleRoleRevealDismiss}
-                        context={t.common.youAreThe}
                     />
                 );
             }
@@ -568,11 +569,16 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
             case "grimoire_role_card": {
                 const player = getPlayer(state, screen.playerId);
                 if (!player) return null;
+                const cardRole = getRole(player.roleId);
+                const cardTeamId = cardRole?.team ?? "townsfolk";
+                const cardTeam = getTeam(cardTeamId);
                 return (
-                    <RoleCard
-                        roleId={player.roleId}
-                        onContinue={handleRoleCardClose}
-                    />
+                    <TeamBackground teamId={cardTeamId}>
+                        <RoleCard roleId={player.roleId} />
+                        <CardLink onClick={handleRoleCardClose} isEvil={cardTeam.isEvil}>
+                            {t.common.back}
+                        </CardLink>
+                    </TeamBackground>
                 );
             }
 

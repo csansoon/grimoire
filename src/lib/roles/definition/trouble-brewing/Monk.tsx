@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { RoleDefinition } from "../../types";
 import { useI18n } from "../../../i18n";
-import { RoleCard } from "../../../../components/items/RoleCard";
+import { DefaultRoleReveal } from "../../../../components/items/DefaultRoleReveal";
 import { NightActionLayout } from "../../../../components/layouts";
 import { PlayerSelector } from "../../../../components/inputs";
 import { Button, Icon } from "../../../../components/atoms";
@@ -14,9 +14,7 @@ const definition: RoleDefinition = {
     nightOrder: 20, // Monk wakes before the Demon
     shouldWake: (game, player) => isAlive(player) && (game.history.at(-1)?.stateAfter.round ?? 0) > 1,
 
-    RoleReveal: ({ player, onContinue, context }) => (
-        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
-    ),
+    RoleReveal: DefaultRoleReveal,
 
     NightAction: ({ state, player, onComplete }) => {
         const { t } = useI18n();

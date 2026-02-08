@@ -5,6 +5,7 @@ import { getTeam, TeamId } from "../../lib/teams";
 import { useI18n } from "../../lib/i18n";
 import { Icon } from "../atoms";
 import { RoleCard } from "../items/RoleCard";
+import { TeamBackground, CardLink } from "../items/TeamBackground";
 import { MysticDivider } from "../items";
 import { cn } from "../../lib/utils";
 
@@ -35,12 +36,16 @@ export function RolesLibrary({ onBack }: Props) {
 
     // If a role is selected, show its full RoleCard
     if (selectedRoleId) {
+        const selectedRole = getRole(selectedRoleId);
+        const selectedTeamId = selectedRole?.team ?? "townsfolk";
+        const selectedTeam = getTeam(selectedTeamId);
         return (
-            <RoleCard
-                roleId={selectedRoleId}
-                onContinue={() => setSelectedRoleId(null)}
-                buttonLabel={t.common.back}
-            />
+            <TeamBackground teamId={selectedTeamId}>
+                <RoleCard roleId={selectedRoleId} />
+                <CardLink onClick={() => setSelectedRoleId(null)} isEvil={selectedTeam.isEvil}>
+                    {t.common.back}
+                </CardLink>
+            </TeamBackground>
         );
     }
 

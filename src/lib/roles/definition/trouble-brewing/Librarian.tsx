@@ -2,8 +2,11 @@ import { useState } from "react";
 import { RoleDefinition } from "../../types";
 import { isAlive } from "../../../types";
 import { getRole, getAllRoles } from "../../index";
+import { getTeam } from "../../../teams";
 import { useI18n } from "../../../i18n";
+import { DefaultRoleReveal } from "../../../../components/items/DefaultRoleReveal";
 import { RoleCard } from "../../../../components/items/RoleCard";
+import { TeamBackground, CardLink } from "../../../../components/items/TeamBackground";
 import { NightActionLayout, NarratorSetupLayout } from "../../../../components/layouts";
 import {
     StepSection,
@@ -24,9 +27,7 @@ const definition: RoleDefinition = {
     nightOrder: 11,
     shouldWake: (game, player) => isAlive(player) && game.history.at(-1)?.stateAfter.round === 1,
 
-    RoleReveal: ({ player, onContinue, context }) => (
-        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
-    ),
+    RoleReveal: DefaultRoleReveal,
 
     NightAction: ({ state, player, onComplete }) => {
         const { t } = useI18n();
@@ -291,33 +292,38 @@ const definition: RoleDefinition = {
 
         if (!selectedRoleId) return null;
 
+        const shownRole = getRole(selectedRoleId);
+        const shownTeamId = shownRole?.team ?? "townsfolk";
+        const shownTeam = getTeam(shownTeamId);
+
         return (
-            <RoleCard
-                roleId={selectedRoleId}
-                context={
-                    <>
-                        <p className="uppercase tracking-widest font-semibold mb-2">
-                            {t.game.oneOfThemIsThe}
-                        </p>
-                        <div className="flex items-center justify-center gap-2 flex-wrap">
-                            {player1 && (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20">
-                                    <Icon name="user" size="xs" />
-                                    <span className="font-medium">{player1.name}</span>
-                                </span>
-                            )}
-                            {player2 && (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20">
-                                    <Icon name="user" size="xs" />
-                                    <span className="font-medium">{player2.name}</span>
-                                </span>
-                            )}
-                        </div>
-                    </>
-                }
-                onContinue={handleComplete}
-                buttonLabel={t.common.continue}
-            />
+            <TeamBackground teamId={shownTeamId}>
+                <div className={`text-center text-xs mb-4 max-w-sm mx-auto ${shownTeam.isEvil ? "text-red-300/80" : "text-parchment-300/80"}`}>
+                    <p className="uppercase tracking-widest font-semibold mb-2">
+                        {t.game.oneOfThemIsThe}
+                    </p>
+                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                        {player1 && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20">
+                                <Icon name="user" size="xs" />
+                                <span className="font-medium">{player1.name}</span>
+                            </span>
+                        )}
+                        {player2 && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20">
+                                <Icon name="user" size="xs" />
+                                <span className="font-medium">{player2.name}</span>
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                <RoleCard roleId={selectedRoleId} />
+
+                <CardLink onClick={handleComplete} isEvil={shownTeam.isEvil}>
+                    {t.common.continue}
+                </CardLink>
+            </TeamBackground>
         );
     },
 };

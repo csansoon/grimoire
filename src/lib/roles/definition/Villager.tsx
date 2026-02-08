@@ -1,5 +1,5 @@
 import { RoleDefinition } from "../types";
-import { RoleCard } from "../../../components/items/RoleCard";
+import { DefaultRoleReveal } from "../../../components/items/DefaultRoleReveal";
 
 const definition: RoleDefinition = {
     id: "villager",
@@ -7,9 +7,7 @@ const definition: RoleDefinition = {
     icon: "user",
     nightOrder: null, // Doesn't wake at night
 
-    RoleReveal: ({ player, onContinue, context }) => (
-        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
-    ),
+    RoleReveal: DefaultRoleReveal,
     NightAction: null,
 };
 

@@ -1,6 +1,6 @@
 import { RoleDefinition } from "../../types";
 import { useI18n } from "../../../i18n";
-import { RoleCard } from "../../../../components/items/RoleCard";
+import { DefaultRoleReveal } from "../../../../components/items/DefaultRoleReveal";
 import { NightActionLayout } from "../../../../components/layouts";
 import { RoleRevealBadge } from "../../../../components/items";
 import { Button, Icon } from "../../../../components/atoms";
@@ -14,9 +14,7 @@ const definition: RoleDefinition = {
     nightOrder: 14,
     shouldWake: (_game, player) => isAlive(player),
 
-    RoleReveal: ({ player, onContinue, context }) => (
-        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
-    ),
+    RoleReveal: DefaultRoleReveal,
 
     NightAction: ({ state, player, onComplete }) => {
         const { t } = useI18n();

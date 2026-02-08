@@ -1,5 +1,5 @@
 import { RoleDefinition } from "../../types";
-import { RoleCard } from "../../../../components/items/RoleCard";
+import { DefaultRoleReveal } from "../../../../components/items/DefaultRoleReveal";
 
 /**
  * Scarlet Woman — Minion role.
@@ -21,9 +21,7 @@ const definition: RoleDefinition = {
         { type: "scarlet_woman", expiresAt: "never" },
     ],
 
-    RoleReveal: ({ player, onContinue, context }) => (
-        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
-    ),
+    RoleReveal: DefaultRoleReveal,
 
     NightAction: null,
 };

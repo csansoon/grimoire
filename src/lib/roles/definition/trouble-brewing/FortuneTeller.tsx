@@ -3,7 +3,7 @@ import { RoleDefinition, NightActionResult } from "../../types";
 import { getRole } from "../../index";
 import { isAlive } from "../../../types";
 import { useI18n } from "../../../i18n";
-import { RoleCard } from "../../../../components/items/RoleCard";
+import { DefaultRoleReveal } from "../../../../components/items/DefaultRoleReveal";
 import { NightActionLayout, NarratorSetupLayout } from "../../../../components/layouts";
 import {
     StepSection,
@@ -22,9 +22,7 @@ const definition: RoleDefinition = {
     nightOrder: 15, // After info roles like Washerwoman, before protection roles like Monk
     shouldWake: (_game, player) => isAlive(player),
 
-    RoleReveal: ({ player, onContinue, context }) => (
-        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
-    ),
+    RoleReveal: DefaultRoleReveal,
 
     NightAction: ({ state, player, onComplete }) => {
         const { t } = useI18n();

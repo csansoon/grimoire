@@ -1,5 +1,5 @@
 import { RoleDefinition } from "../../types";
-import { RoleCard } from "../../../../components/items/RoleCard";
+import { DefaultRoleReveal } from "../../../../components/items/DefaultRoleReveal";
 
 const definition: RoleDefinition = {
     id: "slayer",
@@ -12,9 +12,7 @@ const definition: RoleDefinition = {
         { type: "slayer_bullet", expiresAt: "never" },
     ],
 
-    RoleReveal: ({ player, onContinue, context }) => (
-        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
-    ),
+    RoleReveal: DefaultRoleReveal,
 
     NightAction: null,
 };

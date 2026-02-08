@@ -1,6 +1,8 @@
 export { PlayerBadge } from "./PlayerBadge";
 export { RoleBadge } from "./RoleBadge";
 export { RoleCard } from "./RoleCard";
+export { TeamBackground, CardLink } from "./TeamBackground";
+export { DefaultRoleReveal } from "./DefaultRoleReveal";
 export { RichMessage } from "./RichMessage";
 export { StepSection } from "./StepSection";
 export { AlertBox } from "./AlertBox";

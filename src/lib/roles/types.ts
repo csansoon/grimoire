@@ -44,8 +44,6 @@ export type NightActionResult = {
 export type RoleRevealProps = {
     player: PlayerState;
     onContinue: () => void;
-    /** Optional context content shown above the role card (e.g., "You are the...", player name badges). */
-    context?: React.ReactNode;
 };
 
 // ============================================================================

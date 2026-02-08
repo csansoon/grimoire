@@ -1,9 +1,13 @@
 import { RoleDefinition } from "../../types";
 import { getRole } from "../../index";
+import { getTeam } from "../../../teams";
 import { isAlive } from "../../../types";
 import { useI18n } from "../../../i18n";
+import { DefaultRoleReveal } from "../../../../components/items/DefaultRoleReveal";
 import { RoleCard } from "../../../../components/items/RoleCard";
+import { TeamBackground, CardLink } from "../../../../components/items/TeamBackground";
 import { perceive } from "../../../pipeline";
+import { cn } from "../../../../lib/utils";
 
 // Helper to find execution from the previous day
 function findExecutedPlayerId(game: { history: Array<{ type: string; data: Record<string, unknown> }> }): string | null {
@@ -43,9 +47,7 @@ const definition: RoleDefinition = {
         return findExecutedPlayerId(game) !== null;
     },
 
-    RoleReveal: ({ player, onContinue, context }) => (
-        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
-    ),
+    RoleReveal: DefaultRoleReveal,
 
     NightAction: ({ game, state, player, onComplete }) => {
         const { t } = useI18n();
@@ -94,13 +96,25 @@ const definition: RoleDefinition = {
 
         if (!executedPerception) return null;
 
+        const shownRole = getRole(executedPerception.roleId);
+        const shownTeamId = shownRole?.team ?? "townsfolk";
+        const shownTeam = getTeam(shownTeamId);
+
         return (
-            <RoleCard
-                roleId={executedPerception.roleId}
-                context={t.game.executedPlayerRole}
-                onContinue={handleComplete}
-                buttonLabel={t.common.continue}
-            />
+            <TeamBackground teamId={shownTeamId}>
+                <p className={cn(
+                    "text-center text-xs uppercase tracking-widest font-semibold mb-4",
+                    shownTeam.isEvil ? "text-red-300/80" : "text-parchment-300/80",
+                )}>
+                    {t.game.executedPlayerRole}
+                </p>
+
+                <RoleCard roleId={executedPerception.roleId} />
+
+                <CardLink onClick={handleComplete} isEvil={shownTeam.isEvil}>
+                    {t.common.continue}
+                </CardLink>
+            </TeamBackground>
         );
     },
 };

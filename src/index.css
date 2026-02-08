@@ -117,6 +117,21 @@
   }
 }
 
+/* Card 3D float animation */
+@keyframes cardFloat {
+  0%, 100% {
+    transform: perspective(800px) rotateY(-3deg) rotateX(3deg);
+  }
+  50% {
+    transform: perspective(800px) rotateY(3deg) rotateX(-2deg);
+  }
+}
+
+.animate-card-float {
+  animation: cardFloat 6s ease-in-out infinite;
+  will-change: transform;
+}
+
 /* Dialog animations */
 @keyframes fadeIn {
   from { opacity: 0; }

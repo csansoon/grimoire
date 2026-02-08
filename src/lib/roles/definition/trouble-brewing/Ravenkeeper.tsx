@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { RoleDefinition } from "../../types";
 import { getRole } from "../../index";
+import { getTeam } from "../../../teams";
 import { useI18n } from "../../../i18n";
 import { hasEffect, Game, PlayerState } from "../../../types";
+import { DefaultRoleReveal } from "../../../../components/items/DefaultRoleReveal";
 import { RoleCard } from "../../../../components/items/RoleCard";
+import { TeamBackground, CardLink } from "../../../../components/items/TeamBackground";
 import { NightActionLayout } from "../../../../components/layouts";
 import { SelectablePlayerItem } from "../../../../components/inputs";
 import { Button, Icon } from "../../../../components/atoms";
 import { perceive } from "../../../pipeline";
+import { cn } from "../../../../lib/utils";
 
 type Phase = "select_player" | "show_role";
 
@@ -52,9 +56,7 @@ const definition: RoleDefinition = {
         return wasKilledThisNight(game, player.id);
     },
 
-    RoleReveal: ({ player, onContinue, context }) => (
-        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
-    ),
+    RoleReveal: DefaultRoleReveal,
 
     NightAction: ({ state, player, onComplete }) => {
         const { t } = useI18n();
@@ -160,13 +162,25 @@ const definition: RoleDefinition = {
 
         if (!targetPerception) return null;
 
+        const shownRole = getRole(targetPerception.roleId);
+        const shownTeamId = shownRole?.team ?? "townsfolk";
+        const shownTeam = getTeam(shownTeamId);
+
         return (
-            <RoleCard
-                roleId={targetPerception.roleId}
-                context={t.game.playerRoleIs}
-                onContinue={handleComplete}
-                buttonLabel={t.common.continue}
-            />
+            <TeamBackground teamId={shownTeamId}>
+                <p className={cn(
+                    "text-center text-xs uppercase tracking-widest font-semibold mb-4",
+                    shownTeam.isEvil ? "text-red-300/80" : "text-parchment-300/80",
+                )}>
+                    {t.game.playerRoleIs}
+                </p>
+
+                <RoleCard roleId={targetPerception.roleId} />
+
+                <CardLink onClick={handleComplete} isEvil={shownTeam.isEvil}>
+                    {t.common.continue}
+                </CardLink>
+            </TeamBackground>
         );
     },
 };
