@@ -7,9 +7,10 @@ type Props = {
     onNewGame: () => void;
     onContinue: (gameId: string) => void;
     onLoadGame: (gameId: string) => void;
+    onRolesLibrary: () => void;
 };
 
-export function MainMenu({ onNewGame, onContinue, onLoadGame }: Props) {
+export function MainMenu({ onNewGame, onContinue, onLoadGame, onRolesLibrary }: Props) {
     const { language, t } = useI18n();
     const games = getGameSummaries();
     const currentGameId = getCurrentGameId();
@@ -94,6 +95,24 @@ export function MainMenu({ onNewGame, onContinue, onLoadGame }: Props) {
                                 </div>
                             </div>
                             <Icon name="sparkles" size="lg" className="text-indigo-400 group-hover:scale-110 transition-transform" />
+                        </div>
+                    </button>
+
+                    {/* Roles Library */}
+                    <button
+                        onClick={onRolesLibrary}
+                        className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-900/30 to-yellow-900/30 border border-mystic-gold/20 hover:border-mystic-gold/40 transition-all group"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="text-left">
+                                <div className="font-tarot text-lg text-parchment-100 tracking-wider uppercase">
+                                    {t.mainMenu.rolesLibrary}
+                                </div>
+                                <div className="text-sm text-parchment-400 mt-1">
+                                    {t.mainMenu.browseAllRoles}
+                                </div>
+                            </div>
+                            <Icon name="bookMarked" size="lg" className="text-mystic-gold group-hover:scale-110 transition-transform" />
                         </div>
                     </button>
                 </div>

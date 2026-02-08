@@ -14,8 +14,8 @@ const definition: RoleDefinition = {
     nightOrder: 20, // Monk wakes before the Demon
     shouldWake: (game, player) => isAlive(player) && (game.history.at(-1)?.stateAfter.round ?? 0) > 1,
 
-    RoleReveal: ({ player, onContinue }) => (
-        <RoleCard player={player} onContinue={onContinue} />
+    RoleReveal: ({ player, onContinue, context }) => (
+        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
     ),
 
     NightAction: ({ state, player, onComplete }) => {

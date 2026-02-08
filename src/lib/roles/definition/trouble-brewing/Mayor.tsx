@@ -44,8 +44,8 @@ const definition: RoleDefinition = {
         },
     ],
 
-    RoleReveal: ({ player, onContinue }) => (
-        <RoleCard player={player} onContinue={onContinue} />
+    RoleReveal: ({ player, onContinue, context }) => (
+        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
     ),
 
     NightAction: null,

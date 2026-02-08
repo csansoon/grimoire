@@ -13,11 +13,13 @@ import {
     RoleSelection,
     RoleAssignment,
     GameScreen,
+    RolesLibrary,
 } from "./components/screens";
 import { LanguageToggle } from "./components/atoms";
 
 type Screen =
     | { type: "main_menu" }
+    | { type: "roles_library" }
     | { type: "new_game_players" }
     | { type: "new_game_roles"; players: string[] }
     | { type: "new_game_assign"; players: string[]; selectedRoles: string[] }
@@ -28,6 +30,10 @@ function App() {
 
     const handleNewGame = () => {
         setScreen({ type: "new_game_players" });
+    };
+
+    const handleRolesLibrary = () => {
+        setScreen({ type: "roles_library" });
     };
 
     const handlePlayersNext = (players: string[]) => {
@@ -88,6 +94,14 @@ function App() {
                         onNewGame={handleNewGame}
                         onContinue={handleContinueGame}
                         onLoadGame={handleLoadGame}
+                        onRolesLibrary={handleRolesLibrary}
+                    />
+                );
+
+            case "roles_library":
+                return (
+                    <RolesLibrary
+                        onBack={handleBack}
                     />
                 );
 

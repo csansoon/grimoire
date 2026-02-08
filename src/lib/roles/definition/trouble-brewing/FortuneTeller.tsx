@@ -22,8 +22,8 @@ const definition: RoleDefinition = {
     nightOrder: 15, // After info roles like Washerwoman, before protection roles like Monk
     shouldWake: (_game, player) => isAlive(player),
 
-    RoleReveal: ({ player, onContinue }) => (
-        <RoleCard player={player} onContinue={onContinue} />
+    RoleReveal: ({ player, onContinue, context }) => (
+        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
     ),
 
     NightAction: ({ state, player, onComplete }) => {

@@ -22,8 +22,8 @@ function RoleChangeRevealAction({
 
     return (
         <RoleCard
-            player={player}
-            headerMessage={t.game.yourRoleHasChanged}
+            roleId={player.roleId}
+            context={t.game.yourRoleHasChanged}
             onContinue={() => {
                 onComplete({
                     entries: [

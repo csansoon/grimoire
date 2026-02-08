@@ -9,3 +9,4 @@ export { DayPhase } from "./DayPhase";
 export { VotingPhase } from "./VotingPhase";
 export { GameOver } from "./GameOver";
 export { HistoryView } from "./HistoryView";
+export { RolesLibrary } from "./RolesLibrary";

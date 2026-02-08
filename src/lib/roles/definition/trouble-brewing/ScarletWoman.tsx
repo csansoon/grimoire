@@ -13,7 +13,7 @@ import { RoleCard } from "../../../../components/items/RoleCard";
 const definition: RoleDefinition = {
     id: "scarlet_woman",
     team: "minion",
-    icon: "heart",
+    icon: "rose",
     nightOrder: null, // Doesn't wake at night — passive ability
 
     // Scarlet Woman gets her effect at game start
@@ -21,8 +21,8 @@ const definition: RoleDefinition = {
         { type: "scarlet_woman", expiresAt: "never" },
     ],
 
-    RoleReveal: ({ player, onContinue }) => (
-        <RoleCard player={player} onContinue={onContinue} />
+    RoleReveal: ({ player, onContinue, context }) => (
+        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
     ),
 
     NightAction: null,

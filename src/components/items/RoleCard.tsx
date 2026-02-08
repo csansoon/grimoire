@@ -1,38 +1,40 @@
-import { PlayerState } from "../../lib/types";
+import { ReactNode } from "react";
 import { getRole } from "../../lib/roles";
 import { getTeam, TeamId } from "../../lib/teams";
 import { useI18n } from "../../lib/i18n";
-import { Button, Icon } from "../atoms";
+import { Icon } from "../atoms";
 import { MysticDivider } from "../items";
 import { cn } from "../../lib/utils";
 
 type Props = {
-    player: PlayerState;
+    roleId: string;
     onContinue: () => void;
-    /** Optional header message shown above the player name (e.g., "Your role has changed!") */
-    headerMessage?: string;
+    /** Optional context content shown above the card. Can be a string or rich JSX (e.g., player badges). */
+    context?: ReactNode;
+    /** Optional custom label for the action link below the card. Defaults to "I understand my role". */
+    buttonLabel?: string;
 };
 
-export function RoleCard({ player, onContinue, headerMessage }: Props) {
+export function RoleCard({ roleId, onContinue, context, buttonLabel }: Props) {
     const { t } = useI18n();
-    const role = getRole(player.roleId);
+    const role = getRole(roleId);
 
     if (!role) {
         return (
             <div className="min-h-app bg-grimoire-dark flex items-center justify-center p-4">
-                <p className="text-red-400 font-tarot">Unknown role: {player.roleId}</p>
+                <p className="text-red-400 font-tarot">Unknown role: {roleId}</p>
             </div>
         );
     }
 
     const team = getTeam(role.team);
-    const roleId = role.id as keyof typeof t.roles;
+    const roleKey = role.id as keyof typeof t.roles;
     const teamId = role.team as TeamId;
 
-    const roleTranslation = t.roles[roleId];
+    const roleTranslation = t.roles[roleKey];
     const teamTranslation = t.teams[teamId];
 
-    const roleName = roleTranslation?.name ?? roleId;
+    const roleName = roleTranslation?.name ?? roleKey;
     const roleDescription = roleTranslation?.description ?? "";
     const teamName = teamTranslation?.name ?? teamId;
     const winCondition = teamTranslation?.winCondition ?? "";
@@ -42,10 +44,20 @@ export function RoleCard({ player, onContinue, headerMessage }: Props) {
     return (
         <div
             className={cn(
-                "min-h-app flex items-center justify-center p-4 bg-gradient-to-br",
+                "min-h-app flex flex-col items-center justify-center p-4 bg-gradient-to-br",
                 team.colors.gradient
             )}
         >
+            {/* Context — above the card */}
+            {context && (
+                <div className={cn(
+                    "text-center text-xs mb-4 max-w-sm mx-auto",
+                    isEvil ? "text-red-300/80" : "text-parchment-300/80"
+                )}>
+                    {context}
+                </div>
+            )}
+
             {/* The Tarot Card */}
             <div
                 className={cn(
@@ -73,38 +85,6 @@ export function RoleCard({ player, onContinue, headerMessage }: Props) {
 
                 {/* Card Content */}
                 <div className="relative z-10 px-8 py-10 parchment-texture">
-                    {/* Header Message (e.g., role change notification) */}
-                    {headerMessage && (
-                        <div className={cn(
-                            "text-center mb-6 px-4 py-3 rounded-lg",
-                            isEvil
-                                ? "bg-purple-900/50 border border-purple-400/30"
-                                : "bg-amber-900/30 border border-amber-400/30"
-                        )}>
-                            <div className="flex items-center justify-center gap-2">
-                                <Icon
-                                    name="sparkles"
-                                    size="sm"
-                                    className={isEvil ? "text-purple-300" : "text-amber-300"}
-                                />
-                                <p className={cn(
-                                    "text-sm font-semibold uppercase tracking-wider",
-                                    isEvil ? "text-purple-200" : "text-amber-200"
-                                )}>
-                                    {headerMessage}
-                                </p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Player Name */}
-                    <p className={cn(
-                        "text-center text-sm tracking-widest uppercase mb-6 opacity-70",
-                        team.colors.cardText
-                    )}>
-                        {player.name}
-                    </p>
-
                     {/* Role Icon (Large, centered) */}
                     <div className="flex justify-center mb-6">
                         <div className={cn(
@@ -157,7 +137,7 @@ export function RoleCard({ player, onContinue, headerMessage }: Props) {
 
                     {/* Win Condition */}
                     <div className={cn(
-                        "rounded-lg p-4 mb-6",
+                        "rounded-lg p-4",
                         isEvil ? "bg-red-950/50 border border-red-600/30" : "bg-mystic-gold/10 border border-mystic-gold/20"
                     )}>
                         <div className="flex items-center justify-center gap-2 mb-2">
@@ -181,22 +161,21 @@ export function RoleCard({ player, onContinue, headerMessage }: Props) {
                             {winCondition}
                         </p>
                     </div>
-
-                    {/* Confirmation Button */}
-                    <Button
-                        onClick={onContinue}
-                        fullWidth
-                        size="lg"
-                        className={cn(
-                            "bg-gradient-to-r font-tarot uppercase tracking-wider",
-                            team.colors.buttonGradient,
-                            isEvil ? "text-white" : "text-grimoire-dark"
-                        )}
-                    >
-                        {t.common.iUnderstandMyRole}
-                    </Button>
                 </div>
             </div>
+
+            {/* Action link — below the card */}
+            <button
+                onClick={onContinue}
+                className={cn(
+                    "mt-5 text-sm underline underline-offset-4 decoration-1 transition-colors",
+                    isEvil
+                        ? "text-red-300/70 hover:text-red-200 decoration-red-400/40"
+                        : "text-parchment-300/70 hover:text-parchment-100 decoration-parchment-400/40"
+                )}
+            >
+                {buttonLabel ?? t.common.iUnderstandMyRole}
+            </button>
         </div>
     );
 }

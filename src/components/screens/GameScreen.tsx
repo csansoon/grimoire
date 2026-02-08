@@ -470,6 +470,7 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                     <role.RoleReveal
                         player={player}
                         onContinue={handleRoleRevealDismiss}
+                        context={t.common.youAreThe}
                     />
                 );
             }
@@ -569,7 +570,7 @@ export function GameScreen({ initialGame, onMainMenu }: Props) {
                 if (!player) return null;
                 return (
                     <RoleCard
-                        player={player}
+                        roleId={player.roleId}
                         onContinue={handleRoleCardClose}
                     />
                 );

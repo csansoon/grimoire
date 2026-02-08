@@ -5,7 +5,6 @@ import { useI18n } from "../../../i18n";
 import { hasEffect, Game, PlayerState } from "../../../types";
 import { RoleCard } from "../../../../components/items/RoleCard";
 import { NightActionLayout } from "../../../../components/layouts";
-import { MysticDivider, RoleRevealBadge } from "../../../../components/items";
 import { SelectablePlayerItem } from "../../../../components/inputs";
 import { Button, Icon } from "../../../../components/atoms";
 import { perceive } from "../../../pipeline";
@@ -53,8 +52,8 @@ const definition: RoleDefinition = {
         return wasKilledThisNight(game, player.id);
     },
 
-    RoleReveal: ({ player, onContinue }) => (
-        <RoleCard player={player} onContinue={onContinue} />
+    RoleReveal: ({ player, onContinue, context }) => (
+        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
     ),
 
     NightAction: ({ state, player, onComplete }) => {
@@ -112,11 +111,6 @@ const definition: RoleDefinition = {
             });
         };
 
-        const getRoleName = (roleId: string) => {
-            const key = roleId as keyof typeof t.roles;
-            return t.roles[key]?.name ?? roleId;
-        };
-
         // Phase 1: Select a player
         if (phase === "select_player") {
             return (
@@ -158,47 +152,21 @@ const definition: RoleDefinition = {
             );
         }
 
-        // Phase 2: Show the selected player's perceived role
+        // Phase 2: Show the selected player's perceived role as a full RoleCard
         const targetPlayer = state.players.find((p) => p.id === selectedPlayer);
         const targetPerception = targetPlayer
             ? perceive(targetPlayer, player, "role", state)
             : null;
-        const targetRole = targetPerception
-            ? getRole(targetPerception.roleId)
-            : null;
+
+        if (!targetPerception) return null;
 
         return (
-            <NightActionLayout
-                player={player}
-                title={t.game.ravenkeeperInfo}
-                description={t.game.playerRoleIs}
-            >
-                {targetPlayer && (
-                    <div className="text-center mb-4">
-                        <span className="text-lg text-stone-300">{targetPlayer.name}</span>
-                    </div>
-                )}
-
-                <MysticDivider />
-
-                {targetRole && (
-                    <RoleRevealBadge
-                        icon={targetRole.icon}
-                        roleName={getRoleName(targetRole.id)}
-                        label={t.game.playerRoleIs}
-                    />
-                )}
-
-                <Button
-                    onClick={handleComplete}
-                    fullWidth
-                    size="lg"
-                    className="bg-gradient-to-r from-blue-600 to-indigo-700 font-tarot uppercase tracking-wider"
-                >
-                    <Icon name="check" size="md" className="mr-2" />
-                    {t.common.iUnderstandMyRole}
-                </Button>
-            </NightActionLayout>
+            <RoleCard
+                roleId={targetPerception.roleId}
+                context={t.game.playerRoleIs}
+                onContinue={handleComplete}
+                buttonLabel={t.common.continue}
+            />
         );
     },
 };

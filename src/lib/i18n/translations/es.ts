@@ -26,6 +26,8 @@ const es: Translations = {
         continueGame: "Continuar Partida",
         newGame: "Nueva Partida",
         startFreshGame: "Comenzar una nueva partida",
+        rolesLibrary: "Roles",
+        browseAllRoles: "Explorar todas las cartas de rol",
         previousGames: "Partidas Anteriores",
         completed: "Completada",
         settingUp: "Configurando",

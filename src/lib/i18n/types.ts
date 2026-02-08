@@ -28,6 +28,8 @@ export type Translations = {
         continueGame: string;
         newGame: string;
         startFreshGame: string;
+        rolesLibrary: string;
+        browseAllRoles: string;
         previousGames: string;
         completed: string;
         settingUp: string;

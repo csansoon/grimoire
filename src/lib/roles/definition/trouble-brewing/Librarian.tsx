@@ -8,9 +8,7 @@ import { NightActionLayout, NarratorSetupLayout } from "../../../../components/l
 import {
     StepSection,
     AlertBox,
-    PlayerNameCard,
     RoleRevealBadge,
-    MysticDivider,
     InfoBox,
 } from "../../../../components/items";
 import { SelectablePlayerItem, SelectableRoleItem } from "../../../../components/inputs";
@@ -26,8 +24,8 @@ const definition: RoleDefinition = {
     nightOrder: 11,
     shouldWake: (game, player) => isAlive(player) && game.history.at(-1)?.stateAfter.round === 1,
 
-    RoleReveal: ({ player, onContinue }) => (
-        <RoleCard player={player} onContinue={onContinue} />
+    RoleReveal: ({ player, onContinue, context }) => (
+        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
     ),
 
     NightAction: ({ state, player, onComplete }) => {
@@ -287,42 +285,39 @@ const definition: RoleDefinition = {
             );
         }
 
-        // Player View Phase — use the narrator's chosen role
-        const shownRole = selectedRoleId ? getRole(selectedRoleId) : null;
+        // Player View Phase — show the role card with player name context
         const player1 = state.players.find((p) => p.id === selectedPlayers[0]);
         const player2 = state.players.find((p) => p.id === selectedPlayers[1]);
 
+        if (!selectedRoleId) return null;
+
         return (
-            <NightActionLayout
-                player={player}
-                title={t.game.librarianInfo}
-                description={t.game.oneOfTheseIsTheOutsider}
-            >
-                <div className="space-y-3 mb-6">
-                    {player1 && <PlayerNameCard name={player1.name} />}
-                    {player2 && <PlayerNameCard name={player2.name} />}
-                </div>
-
-                <MysticDivider />
-
-                {shownRole && (
-                    <RoleRevealBadge
-                        icon={shownRole.icon}
-                        roleName={getRoleName(shownRole.id)}
-                        label={t.game.oneOfThemIsThe}
-                    />
-                )}
-
-                <Button
-                    onClick={handleComplete}
-                    fullWidth
-                    size="lg"
-                    className="bg-gradient-to-r from-blue-600 to-indigo-700 font-tarot uppercase tracking-wider"
-                >
-                    <Icon name="check" size="md" className="mr-2" />
-                    {t.common.iUnderstandMyRole}
-                </Button>
-            </NightActionLayout>
+            <RoleCard
+                roleId={selectedRoleId}
+                context={
+                    <>
+                        <p className="uppercase tracking-widest font-semibold mb-2">
+                            {t.game.oneOfThemIsThe}
+                        </p>
+                        <div className="flex items-center justify-center gap-2 flex-wrap">
+                            {player1 && (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20">
+                                    <Icon name="user" size="xs" />
+                                    <span className="font-medium">{player1.name}</span>
+                                </span>
+                            )}
+                            {player2 && (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20">
+                                    <Icon name="user" size="xs" />
+                                    <span className="font-medium">{player2.name}</span>
+                                </span>
+                            )}
+                        </div>
+                    </>
+                }
+                onContinue={handleComplete}
+                buttonLabel={t.common.continue}
+            />
         );
     },
 };

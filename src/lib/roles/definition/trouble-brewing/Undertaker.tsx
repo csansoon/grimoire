@@ -3,9 +3,6 @@ import { getRole } from "../../index";
 import { isAlive } from "../../../types";
 import { useI18n } from "../../../i18n";
 import { RoleCard } from "../../../../components/items/RoleCard";
-import { NightActionLayout } from "../../../../components/layouts";
-import { MysticDivider, RoleRevealBadge } from "../../../../components/items";
-import { Button, Icon } from "../../../../components/atoms";
 import { perceive } from "../../../pipeline";
 
 // Helper to find execution from the previous day
@@ -46,8 +43,8 @@ const definition: RoleDefinition = {
         return findExecutedPlayerId(game) !== null;
     },
 
-    RoleReveal: ({ player, onContinue }) => (
-        <RoleCard player={player} onContinue={onContinue} />
+    RoleReveal: ({ player, onContinue, context }) => (
+        <RoleCard roleId={player.roleId} onContinue={onContinue} context={context} />
     ),
 
     NightAction: ({ game, state, player, onComplete }) => {
@@ -95,38 +92,15 @@ const definition: RoleDefinition = {
             }
         };
 
-        const getRoleName = (roleId: string) => {
-            const key = roleId as keyof typeof t.roles;
-            return t.roles[key]?.name ?? roleId;
-        };
+        if (!executedPerception) return null;
 
         return (
-            <NightActionLayout
-                player={player}
-                title={t.game.undertakerInfo}
-                description={t.game.executedPlayerRole}
-            >
-                {executedRole && (
-                    <>
-                        <MysticDivider />
-                        <RoleRevealBadge
-                            icon={executedRole.icon}
-                            roleName={getRoleName(executedRole.id)}
-                            label={t.game.executedPlayerRole}
-                        />
-                    </>
-                )}
-
-                <Button
-                    onClick={handleComplete}
-                    fullWidth
-                    size="lg"
-                    className="bg-gradient-to-r from-blue-600 to-indigo-700 font-tarot uppercase tracking-wider"
-                >
-                    <Icon name="check" size="md" className="mr-2" />
-                    {t.common.iUnderstandMyRole}
-                </Button>
-            </NightActionLayout>
+            <RoleCard
+                roleId={executedPerception.roleId}
+                context={t.game.executedPlayerRole}
+                onContinue={handleComplete}
+                buttonLabel={t.common.continue}
+            />
         );
     },
 };
