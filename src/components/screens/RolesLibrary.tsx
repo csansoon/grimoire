@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { SCRIPTS, getRole } from "../../lib/roles";
+import { RoleId } from "../../lib/roles/types";
 import { getTeam, TeamId } from "../../lib/teams";
 import { useI18n } from "../../lib/i18n";
 import { Icon } from "../atoms";
@@ -16,7 +17,7 @@ const TEAM_ORDER: TeamId[] = ["townsfolk", "outsider", "minion", "demon"];
 
 export function RolesLibrary({ onBack }: Props) {
     const { t } = useI18n();
-    const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+    const [selectedRoleId, setSelectedRoleId] = useState<RoleId | null>(null);
 
     // Get all roles from the Trouble Brewing script (currently the only one)
     const scriptRoles = SCRIPTS["trouble-brewing"].roles;
@@ -33,15 +34,60 @@ export function RolesLibrary({ onBack }: Props) {
         return { teamId, team, roles };
     }).filter((group) => group.roles.length > 0);
 
-    // If a role is selected, show its full RoleCard
+    // Flat ordered list of all role IDs for arrow navigation
+    const allRoleIds = useMemo(
+        () => rolesByTeam.flatMap((group) => group.roles.map((r) => r.id)),
+        [rolesByTeam],
+    );
+
+    // If a role is selected, show its full RoleCard with prev/next navigation
     if (selectedRoleId) {
         const selectedRole = getRole(selectedRoleId);
         const selectedTeamId = selectedRole?.team ?? "townsfolk";
         const selectedTeam = getTeam(selectedTeamId);
+
+        const currentIndex = allRoleIds.indexOf(selectedRoleId);
+        const goToPrev = () => {
+            const prevIndex =
+                (currentIndex - 1 + allRoleIds.length) % allRoleIds.length;
+            setSelectedRoleId(allRoleIds[prevIndex]);
+        };
+        const goToNext = () => {
+            const nextIndex = (currentIndex + 1) % allRoleIds.length;
+            setSelectedRoleId(allRoleIds[nextIndex]);
+        };
+
         return (
             <TeamBackground teamId={selectedTeamId}>
+                {/* Navigation arrows */}
+                <button
+                    onClick={goToPrev}
+                    className={cn(
+                        "absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                        selectedTeam.isEvil
+                            ? "text-red-400/50 hover:text-red-300 hover:bg-red-900/20"
+                            : "text-parchment-400/50 hover:text-parchment-200 hover:bg-white/10",
+                    )}
+                >
+                    <Icon name="chevronLeft" size="lg" />
+                </button>
+                <button
+                    onClick={goToNext}
+                    className={cn(
+                        "absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                        selectedTeam.isEvil
+                            ? "text-red-400/50 hover:text-red-300 hover:bg-red-900/20"
+                            : "text-parchment-400/50 hover:text-parchment-200 hover:bg-white/10",
+                    )}
+                >
+                    <Icon name="chevronRight" size="lg" />
+                </button>
+
                 <RoleCard roleId={selectedRoleId} />
-                <CardLink onClick={() => setSelectedRoleId(null)} isEvil={selectedTeam.isEvil}>
+                <CardLink
+                    onClick={() => setSelectedRoleId(null)}
+                    isEvil={selectedTeam.isEvil}
+                >
                     {t.common.back}
                 </CardLink>
             </TeamBackground>

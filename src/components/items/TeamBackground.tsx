@@ -1,4 +1,4 @@
-import { ReactNode, useRef } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { getTeam, TeamId } from "../../lib/teams";
 import { useShaderBackground } from "../../hooks/useShaderBackground";
 import { cn } from "../../lib/utils";
@@ -401,27 +401,98 @@ type TeamBackgroundProps = {
     children: ReactNode;
 };
 
+// ─── Internal: single shader canvas ─────────────────────────────────────────
+
+function ShaderCanvas({ teamId }: { teamId: TeamId }) {
+    const team = getTeam(teamId);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    useShaderBackground(canvasRef, TEAM_SHADERS[teamId]);
+    return (
+        <canvas
+            ref={canvasRef}
+            className={cn(
+                "absolute inset-0 w-full h-full bg-gradient-to-br",
+                team.colors.gradient,
+            )}
+        />
+    );
+}
+
+// ─── Internal: fading-out shader layer ──────────────────────────────────────
+
+function FadeOutLayer({
+    teamId,
+    onDone,
+}: {
+    teamId: TeamId;
+    onDone: () => void;
+}) {
+    const [visible, setVisible] = useState(true);
+
+    useEffect(() => {
+        // Trigger the fade on the next frame so the browser paints at opacity 1 first
+        const raf = requestAnimationFrame(() =>
+            requestAnimationFrame(() => setVisible(false)),
+        );
+        return () => cancelAnimationFrame(raf);
+    }, []);
+
+    return (
+        <div
+            className="absolute inset-0 transition-opacity duration-700 ease-in-out"
+            style={{ opacity: visible ? 1 : 0 }}
+            onTransitionEnd={onDone}
+        >
+            <ShaderCanvas teamId={teamId} />
+        </div>
+    );
+}
+
+// ─── Public component ───────────────────────────────────────────────────────
+
+type FadingLayer = { key: number; teamId: TeamId };
+
 /**
  * Full-screen team-themed background with a live WebGL shader animation.
  * Falls back to the static CSS gradient if WebGL is unavailable.
  * Centers its children vertically and horizontally.
+ *
+ * When `teamId` changes, the old shader crossfades out smoothly over 700 ms.
  */
 export function TeamBackground({ teamId, children }: TeamBackgroundProps) {
-    const team = getTeam(teamId);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [fadingLayers, setFadingLayers] = useState<FadingLayer[]>([]);
+    const prevTeamRef = useRef(teamId);
+    const keyRef = useRef(0);
 
-    useShaderBackground(canvasRef, TEAM_SHADERS[teamId]);
+    useEffect(() => {
+        if (teamId !== prevTeamRef.current) {
+            const oldTeam = prevTeamRef.current;
+            prevTeamRef.current = teamId;
+            const key = ++keyRef.current;
+            setFadingLayers((prev) => [...prev, { key, teamId: oldTeam }]);
+        }
+    }, [teamId]);
+
+    const removeFadingLayer = (key: number) => {
+        setFadingLayers((prev) => prev.filter((l) => l.key !== key));
+    };
 
     return (
         <div className="isolate relative min-h-app flex flex-col items-center justify-center p-4">
-            {/* Shader canvas — gradient is the CSS fallback if WebGL fails */}
-            <canvas
-                ref={canvasRef}
-                className={cn(
-                    "absolute inset-0 w-full h-full -z-10 bg-gradient-to-br",
-                    team.colors.gradient,
-                )}
-            />
+            {/* Background layers */}
+            <div className="absolute inset-0 -z-10 overflow-hidden">
+                {/* Current shader (always underneath) */}
+                <ShaderCanvas teamId={teamId} />
+
+                {/* Previous shaders fading out on top */}
+                {fadingLayers.map((layer) => (
+                    <FadeOutLayer
+                        key={layer.key}
+                        teamId={layer.teamId}
+                        onDone={() => removeFadingLayer(layer.key)}
+                    />
+                ))}
+            </div>
             {children}
         </div>
     );
