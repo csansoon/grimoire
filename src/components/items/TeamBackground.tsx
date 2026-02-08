@@ -50,6 +50,10 @@ void main() {
   vec2 p = uv;
   p.x *= u_resolution.x / u_resolution.y;
 
+  // Show finer pattern detail on smaller screens
+  float screenScale = clamp(600.0 / max(u_resolution.x, u_resolution.y), 1.0, 1.5);
+  p *= screenScale;
+
   float t = u_time * 0.08;
 
   // Aurora curtains: vertical bands with flowing turbulence
@@ -148,6 +152,10 @@ void main(){
   vec2 p = uv;
   p.x *= u_resolution.x / u_resolution.y;
 
+  // Show finer pattern detail on smaller screens
+  float screenScale = clamp(600.0 / max(u_resolution.x, u_resolution.y), 1.0, 1.5);
+  p *= screenScale;
+
   float t = u_time * 0.10;
 
   // Wandering warp: like reality slipping
@@ -158,7 +166,7 @@ void main(){
   p += (warp - 0.5) * 0.18;
 
   // Prism swirl field
-  vec2 c = p - vec2(0.5 * (u_resolution.x/u_resolution.y), 0.5);
+  vec2 c = p - vec2(0.5 * (u_resolution.x/u_resolution.y) * screenScale, 0.5 * screenScale);
   float r = length(c);
   float a = atan(c.y, c.x);
 
@@ -231,6 +239,10 @@ void main(){
   vec2 uv = gl_FragCoord.xy / u_resolution;
   vec2 p = uv;
   p.x *= u_resolution.x / u_resolution.y;
+
+  // Show finer pattern detail on smaller screens
+  float screenScale = clamp(600.0 / max(u_resolution.x, u_resolution.y), 1.0, 1.5);
+  p *= screenScale;
 
   float t = u_time * 0.12;
 
@@ -321,8 +333,9 @@ float ring(vec2 p, float r, float w){
 
 void main(){
   vec2 uv = gl_FragCoord.xy / u_resolution;
-  vec2 p = uv - 0.5;
-  p.x *= u_resolution.x / u_resolution.y;
+
+  // Show finer pattern detail on smaller screens
+  float screenScale = clamp(600.0 / max(u_resolution.x, u_resolution.y), 1.0, 1.5);
 
   float t = u_time * 0.22;
 
@@ -334,13 +347,14 @@ void main(){
   // Warp everything with angry turbulence
   vec2 wuv = uv;
   vec2 w = vec2(
-    fbm(vec2(uv.y*4.0, uv.x*3.0 + t*1.2)),
-    fbm(vec2(uv.x*4.2, uv.y*3.1 - t*1.0))
+    fbm(vec2(uv.y*4.0*screenScale, uv.x*3.0*screenScale + t*1.2)),
+    fbm(vec2(uv.x*4.2*screenScale, uv.y*3.1*screenScale - t*1.0))
   );
   wuv += (w - 0.5) * 0.10;
 
   vec2 q = wuv - 0.5;
   q.x *= u_resolution.x / u_resolution.y;
+  q *= screenScale;
   float r = length(q);
   float a = atan(q.y, q.x);
 
@@ -357,7 +371,8 @@ void main(){
   chaos = pow(chaos, 1.6);
 
   // Pixel grit
-  vec2 px = floor(uv*vec2(90.0, 90.0))/vec2(90.0, 90.0);
+  float gritScale = 90.0 * screenScale;
+  vec2 px = floor(uv*vec2(gritScale, gritScale))/vec2(gritScale, gritScale);
   float grit = hash(px + floor(t*5.0)*0.01) * 0.06;
 
   float v = chaos*0.7 + core*0.9 + sig*0.6 + barbs*0.8 + grit;

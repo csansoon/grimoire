@@ -68,12 +68,12 @@ export function RoleCard({ roleId }: Props) {
             </div>
 
             {/* Card Content */}
-            <div className="relative z-10 px-8 py-10 parchment-texture">
+            <div className="relative z-10 px-5 py-6 sm:px-8 sm:py-10 parchment-texture">
                 {/* Role Icon (Large, centered) */}
-                <div className="flex justify-center mb-6">
+                <div className="flex justify-center mb-3 sm:mb-6">
                     <div
                         className={cn(
-                            "w-24 h-24 rounded-full flex items-center justify-center",
+                            "w-16 h-16 sm:w-24 sm:h-24 rounded-full flex items-center justify-center",
                             isEvil
                                 ? "bg-red-900/30 border border-red-600/40"
                                 : "bg-mystic-gold/10 border border-mystic-gold/30",
@@ -81,8 +81,9 @@ export function RoleCard({ roleId }: Props) {
                     >
                         <Icon
                             name={role.icon}
-                            size="4xl"
+                            size="2xl"
                             className={cn(
+                                "sm:w-20 sm:h-20",
                                 isEvil
                                     ? "text-red-400 text-glow-crimson"
                                     : "text-mystic-gold text-glow-gold",
@@ -94,7 +95,7 @@ export function RoleCard({ roleId }: Props) {
                 {/* Role Name */}
                 <h1
                     className={cn(
-                        "font-tarot text-3xl font-bold text-center uppercase tracking-widest-xl mb-2",
+                        "font-tarot text-2xl sm:text-3xl font-bold text-center uppercase tracking-widest-xl mb-2",
                         team.colors.cardText,
                         isEvil ? "text-glow-crimson" : "",
                     )}
@@ -105,7 +106,7 @@ export function RoleCard({ roleId }: Props) {
                 {/* Team Badge */}
                 <p
                     className={cn(
-                        "text-center text-xs tracking-widest uppercase mb-6",
+                        "text-center text-xs tracking-widest uppercase mb-4 sm:mb-6",
                         isEvil ? "text-red-400/70" : "text-mystic-gold/70",
                     )}
                 >
@@ -123,7 +124,7 @@ export function RoleCard({ roleId }: Props) {
                 {/* Description */}
                 <p
                     className={cn(
-                        "text-center text-sm leading-relaxed mb-6",
+                        "text-center text-sm leading-relaxed mb-4 sm:mb-6",
                         team.colors.cardText,
                         "opacity-80",
                     )}
@@ -134,13 +135,13 @@ export function RoleCard({ roleId }: Props) {
                 {/* Win Condition */}
                 <div
                     className={cn(
-                        "rounded-lg p-4",
+                        "rounded-lg p-3 sm:p-4",
                         isEvil
                             ? "bg-red-950/50 border border-red-600/30"
                             : "bg-mystic-gold/10 border border-mystic-gold/20",
                     )}
                 >
-                    <div className="flex items-center justify-center gap-2 mb-2">
+                    <div className="flex items-center justify-center gap-2 mb-1 sm:mb-2">
                         <Icon
                             name="trophy"
                             size="sm"
